@@ -14,10 +14,47 @@ namespace SimpleSFTPSyncCore
 {
     public class SimpleSFTPSync
     {
-        public JObject config;
+        JObject config;
         FileStream log;
         SimpleSFTPSyncCoreContext db;
+        string hostname;
+        int port;
+        string username;
+        string password;
+        string fingerprint;
+        string remoteDir;
+        string downloadDir;
+        string unrar;
+        string movieDir;
+        string tvDir;
+        List<string> rars;
+        List<string> mkvs;
 
+        public SimpleSFTPSync()
+        {
+            // Connect DB
+            db = new SimpleSFTPSyncCoreContext();
+
+            // Open Log File
+            log = File.OpenWrite(Directory.GetCurrentDirectory() + "\\" + DateTime.Now.ToString("MM-dd-yyyy") + ".log");
+
+            // Read configuration
+            var fileText = File.ReadAllText(Directory.GetCurrentDirectory() + "\\" + "config.json");
+            config = JObject.Parse(fileText);
+            hostname = config["hostname"].Value<string>();
+            port = config["port"].Value<int>();
+            username = config["username"].Value<string>();
+            password = config["password"].Value<string>();
+            fingerprint = config["fingerprint"].Value<string>();
+            remoteDir = config["remoteDir"].Value<string>();
+            downloadDir = config["downloadDir"].Value<string>();
+            unrar = config["unrar"].Value<string>();
+            movieDir = config["movieDir"].Value<string>();
+            tvDir = config["tvDir"].Value<string>();
+            rars = new List<string>();
+            mkvs = new List<string>();
+            Log("Configuration Read");
+        }
 
         /// <summary>
         /// Starts a new SFTP connect and download run
@@ -26,30 +63,6 @@ namespace SimpleSFTPSyncCore
         {
             try
             {
-                // Connect DB
-                db = new SimpleSFTPSyncCoreContext();
-
-                // Open Log File
-                log = File.OpenWrite(Directory.GetCurrentDirectory() + "\\" + DateTime.Now.ToString("MM-dd-yyyy") + ".log");
-
-                // Read configuration
-                var fileText = File.ReadAllText(Directory.GetCurrentDirectory() + "\\" + "config.json");
-                config = JObject.Parse(fileText);
-                var hostname = config["hostname"].Value<string>();
-                var port = config["port"].Value<int>();
-                var username = config["username"].Value<string>();
-                var password = config["password"].Value<string>();
-                var fingerprint = config["fingerprint"].Value<string>();
-                var remoteDir = config["remoteDir"].Value<string>();
-                var downloadDir = config["downloadDir"].Value<string>();
-                var movieDir = config["movieDir"].Value<string>();
-                var tvDir = config["tvDir"].Value<string>();
-                var unrar = config["unrar"].Value<string>();
-                var rars = new List<string>();
-                var mkvs = new List<string>();
-
-                Log("Configuration Read! Connecting...");
-
                 // Make SFTP connection and do work
                 using (var sftp = new SftpClient(hostname, port, username, password))
                 {
@@ -195,42 +208,63 @@ namespace SimpleSFTPSyncCore
                 }
 
                 // MKV move & rename
-                foreach (var mkv in mkvs.Where(mkv => !mkv.Contains("Sample")))
-                {
-                    try
-                    {
-                        // Determine if TV or Movie
-                        if (Rename.IsTV(mkv))
-                        {
-                            var filename = Rename.TV(mkv);
-                            Log("Moving TV " + mkv + " --> " + tvDir + '\\' + filename);
-                            File.Move(mkv, tvDir + '\\' + filename);
-                            Log("Moved Successfully");
-                        }
-                        else
-                        {
-                            var filename = Rename.Movie(mkv);
-                            Log("Moving Movie " + mkv + " --> " + movieDir + '\\' + filename);
-                            File.Move(mkv, movieDir + '\\' + filename);
-                            Log("Moved Successfully");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log("!!ERROR!! during move of " + mkv + " - " + ex);
-                    }
-                }
+                MoveFiles(mkvs);
+                
                 Log("All jobs complete.  Closing in 60 seconds...");
                 log.Flush();
                 Thread.Sleep(60000);
             }
             catch (Exception exception)
             {
-                Log("!!ERROR!! Unexpected top level error - " + exception.ToString());
+                Log("!!ERROR!! Unexpected top level error - " + exception);
             }
             finally
             {
                 log.Flush();
+            }
+        }
+
+        /// <summary>
+        /// Move a given list of mkvs
+        /// </summary>
+        /// <param name="mkvs">A list of mkv paths to move</param>
+        public void MoveFiles(List<string> mkvs)
+        {
+            foreach (var mkv in mkvs.Where(mkv => !mkv.Contains("Sample")))
+            {
+                try
+                {
+                    // Determine if TV or Movie
+                    if (Rename.IsTV(mkv))
+                    {
+                        var filename = Rename.TV(mkv);
+                        Log("Moving TV " + mkv + " --> " + tvDir + '\\' + filename);
+                        Directory.CreateDirectory(tvDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
+                        if (File.Exists(tvDir + '\\' + filename))
+                        {
+                            Log("Existing file with same name found.  Deleting...");
+                            File.Delete(tvDir + '\\' + filename);
+                        }
+                        File.Move(mkv, tvDir + '\\' + filename);
+                        Log("Moved Successfully");
+                    }
+                    else
+                    {
+                        var filename = Rename.Movie(mkv);
+                        Log("Moving Movie " + mkv + " --> " + movieDir + '\\' + filename);
+                        Directory.CreateDirectory(movieDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
+                        {
+                            Log("Existing file with same name found.  Deleting...");
+                            File.Delete(movieDir + '\\' + filename);
+                        }
+                        File.Move(mkv, movieDir + '\\' + filename);
+                        Log("Moved Successfully");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log("!!ERROR!! during move of " + mkv + " - " + ex);
+                }
             }
         }
 

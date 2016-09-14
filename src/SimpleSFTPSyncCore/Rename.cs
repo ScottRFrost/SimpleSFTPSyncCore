@@ -36,6 +36,16 @@ namespace SimpleSFTPSyncCore
         }
 
         /// <summary>
+        /// Shared cleaning code
+        /// </summary>
+        /// <param name="filename">Full file path</param>
+        /// <returns>Cleaned with Windows illegal characters removed</returns>
+        private static string CleanFilePath(this string filename)
+        {
+            return filename.Replace(":", "").Replace("*", "").Replace("?", "").Replace("/", "").Replace("\"", "").Replace("<", "").Replace(">", "").Replace("|", "");
+        }
+
+        /// <summary>
         /// Returns True if filename contains S00E00 style episode number, indicating it's probably a TV show (and not a movie)
         /// </summary>
         /// <param name="filename">Full file path</param>
@@ -111,9 +121,9 @@ namespace SimpleSFTPSyncCore
                 else if (genres.Contains("History")) { genre = "Documentary"; }
                 else if (genres.Contains("Drama")) { genre = "Drama"; }
                 else if (genres.Contains("Adventure")) { genre = "Adventure"; }
-                return genre +"\\" + (string)omdbapi.Title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
+                return (genre +"\\" + (string)omdbapi.Title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv").CleanFilePath();
             }
-            return filename;
+            return filename.CleanFilePath();
         }
 
         /// <summary>
@@ -142,15 +152,15 @@ namespace SimpleSFTPSyncCore
                         if (omdbapi.Response == "False")
                         {
                             // Didn't find it, return a best guess
-                            return title + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                            return (title + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
                         }
                         // Found it, use the corrected title
                         title = (string)omdbapi.Title;
-                        return title + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                        return (title + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
                     }
                 }
             }
-            return filename;
+            return filename.CleanFilePath();
         }
     }
 }
