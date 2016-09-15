@@ -240,25 +240,56 @@ namespace SimpleSFTPSyncCore
                         var filename = Rename.TV(mkv);
                         Log("Moving TV " + mkv + " --> " + tvDir + '\\' + filename);
                         Directory.CreateDirectory(tvDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
+                        var shouldMove = true;
                         if (File.Exists(tvDir + '\\' + filename))
                         {
-                            Log("Existing file with same name found.  Deleting...");
-                            File.Delete(tvDir + '\\' + filename);
+                            var newFile = new FileInfo(mkv);
+                            var existingFile = new FileInfo(tvDir + '\\' + filename);
+                            if (newFile.Length == existingFile.Length)
+                            {
+                                Log("Existing file with same name and file size found.  Deleting source file...");
+                                File.Delete(mkv);
+                                shouldMove = false;
+                            }
+                            else
+                            {
+                                Log("Existing file with same name but different size found.  Deleting destination file...");
+                                File.Delete(tvDir + '\\' + filename);
+                            }
                         }
-                        File.Move(mkv, tvDir + '\\' + filename);
-                        Log("Moved Successfully");
+                        if (shouldMove)
+                        {
+                            File.Move(mkv, tvDir + '\\' + filename);
+                            Log("Moved Successfully");
+                        }
                     }
                     else
                     {
                         var filename = Rename.Movie(mkv);
                         Log("Moving Movie " + mkv + " --> " + movieDir + '\\' + filename);
                         Directory.CreateDirectory(movieDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
+                        var shouldMove = true;
+                        if (File.Exists(movieDir + '\\' + filename))
                         {
-                            Log("Existing file with same name found.  Deleting...");
-                            File.Delete(movieDir + '\\' + filename);
+                            var newFile = new FileInfo(mkv);
+                            var existingFile = new FileInfo(movieDir + '\\' + filename);
+                            if (newFile.Length == existingFile.Length)
+                            {
+                                Log("Existing file with same name and file size found.  Deleting source file......");
+                                File.Delete(mkv);
+                                shouldMove = false;
+                            }
+                            else
+                            {
+                                Log("Existing file with same name but different size found.  Deleting destination file...");
+                                File.Delete(movieDir + '\\' + filename);
+                            }
                         }
-                        File.Move(mkv, movieDir + '\\' + filename);
-                        Log("Moved Successfully");
+                        if (shouldMove)
+                        {
+                            File.Move(mkv, movieDir + '\\' + filename);
+                            Log("Moved Successfully");
+                        }
                     }
                 }
                 catch (Exception ex)
