@@ -11,14 +11,47 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Cleaned Version</returns>
-        private static string Clean(this string filename)
+        static string Clean(this string filename)
         {
             // Determine if we want to try to operate on the filename itself or the parent folder
             var chunks = filename.Split('\\');
-            if (chunks.Length > 1 && (chunks[chunks.Length - 2].Contains("720p") || chunks[chunks.Length - 2].Contains("1080p")))
+            if (chunks.Length > 1)
             {
-                // Use parent folder
-                filename = chunks[chunks.Length - 2].ToLowerInvariant() + ".mkv";
+                var parentFolder = chunks[chunks.Length - 2];
+                if (parentFolder.Contains("720p") || parentFolder.Contains("1080p"))
+                {
+                    // Check for TV style naming
+                    var found = false;
+                    for (var season = 1; season < 36; season++)
+                    {
+                        for (var episode = 0; episode < 36; episode++)
+                        {
+                            var episodeNumber = "S" + (season < 10 ? "0" + season : season.ToString(CultureInfo.InvariantCulture)) + "E" + (episode < 10 ? "0" + episode : episode.ToString(CultureInfo.InvariantCulture));
+                            var idx = filename.ToUpperInvariant().IndexOf(episodeNumber, StringComparison.Ordinal);
+                            if (idx > 0)
+                            {
+                                filename = filename.Substring(0, idx) + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (found)
+                    {
+                        // May be a whole season of TV shows, use filename
+                        filename = chunks[chunks.Length - 1].ToLowerInvariant();
+                    }
+                    else
+                    {
+                        // Probably a movie and the parent folder name looks descriptive, use parent folder
+                        filename = chunks[chunks.Length - 2].ToLowerInvariant() + ".mkv";
+                    }
+                }
             }
             else
             {
@@ -29,8 +62,10 @@ namespace SimpleSFTPSyncCore
             // Strip things we know we don't want
             return (
                 filename
+                .ToLowerInvariant()
                 .Replace("1080p", string.Empty).Replace("720p", string.Empty).Replace("x264", string.Empty).Replace("h264", string.Empty).Replace("ac3", string.Empty).Replace("dts", string.Empty)
-                .Replace("blurayrip", string.Empty).Replace("bluray", string.Empty).Replace("dvdrip", string.Empty).Replace(".", " ").Replace("  ", " ").Replace("  ", " ")
+                .Replace("blurayrip", string.Empty).Replace("bluray", string.Empty).Replace("dvdrip", string.Empty).Replace("HDTV", string.Empty).Replace("Webrip", string.Empty)
+                .Replace(".", " ").Replace("  ", " ").Replace("  ", " ")
                 .ToTitleCase().Replace(" Mkv", ".mkv")
             );
         }
@@ -40,7 +75,7 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Cleaned with Windows illegal characters removed</returns>
-        private static string CleanFilePath(this string filename)
+        static string CleanFilePath(this string filename)
         {
             return filename.Replace(":", "").Replace("*", "").Replace("?", "").Replace("/", "").Replace("\"", "").Replace("<", "").Replace(">", "").Replace("|", "");
         }
@@ -54,8 +89,7 @@ namespace SimpleSFTPSyncCore
         {
             filename = filename.Clean();
 
-            // Usually 'Show Name s##e##' followed by garbage
-            filename = filename.Replace("HDTV", string.Empty).Replace("Webrip", string.Empty);
+            // Check for TV style naming - Usually 'Show Name s##e##' followed by garbage
             var found = false;
             for (var season = 1; season < 36; season++)
             {
