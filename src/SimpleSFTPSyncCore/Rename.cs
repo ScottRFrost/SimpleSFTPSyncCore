@@ -62,7 +62,6 @@ namespace SimpleSFTPSyncCore
             // Strip things we know we don't want
             return (
                 filename
-                .ToLowerInvariant()
                 .Replace("1080p", string.Empty).Replace("720p", string.Empty).Replace("x264", string.Empty).Replace("h264", string.Empty).Replace("ac3", string.Empty).Replace("dts", string.Empty)
                 .Replace("blurayrip", string.Empty).Replace("bluray", string.Empty).Replace("dvdrip", string.Empty).Replace("HDTV", string.Empty).Replace("Webrip", string.Empty)
                 .Replace(".", " ").Replace("  ", " ").Replace("  ", " ")
@@ -132,7 +131,8 @@ namespace SimpleSFTPSyncCore
                 }
 
                 // Attempt OMDBAPI Check
-                var title = filename.Substring(0, idx - 1).Trim();
+                var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
+                title = title.Substring(title.LastIndexOf("\\", StringComparison.Ordinal) + 1); // Strip Folder
                 var httpClient = new ProHttpClient();
                 dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + title + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
                 if (omdbapi.Response == "False")
@@ -157,7 +157,7 @@ namespace SimpleSFTPSyncCore
                 else if (genres.Contains("Adventure")) { genre = "Adventure"; }
                 return (genre +"\\" + (string)omdbapi.Title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv").CleanFilePath();
             }
-            return filename.CleanFilePath();
+            return filename.Substring(filename.LastIndexOf("\\", StringComparison.Ordinal) + 1).CleanFilePath();
         }
 
         /// <summary>
@@ -180,21 +180,22 @@ namespace SimpleSFTPSyncCore
                     if (idx > 0)
                     {
                         // Attempt OMDBAPI Check
-                        var title = filename.Substring(0, idx - 1).Trim();
+                        var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
+                        title = title.Substring(title.LastIndexOf("\\", StringComparison.Ordinal) + 1); // Strip Folder
                         var httpClient = new ProHttpClient();
                         dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title).Result);
                         if (omdbapi.Response == "False")
                         {
                             // Didn't find it, return a best guess
-                            return (title + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
+                            return (title.CleanFilePath() + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv");
                         }
                         // Found it, use the corrected title
                         title = (string)omdbapi.Title;
-                        return (title + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
+                        return (title.CleanFilePath() + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
                     }
                 }
             }
-            return filename.CleanFilePath();
+            return filename.Substring(filename.LastIndexOf("\\", StringComparison.Ordinal) + 1).CleanFilePath();
         }
     }
 }

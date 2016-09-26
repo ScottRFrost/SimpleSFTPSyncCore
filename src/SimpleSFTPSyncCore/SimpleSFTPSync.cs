@@ -238,7 +238,7 @@ namespace SimpleSFTPSyncCore
                     if (Rename.IsTV(mkv))
                     {
                         var filename = Rename.TV(mkv);
-                        Log("Moving TV " + mkv + " --> " + tvDir + '\\' + filename);
+                        Log("Moving TV " + mkv + " -->\r\n     " + tvDir + '\\' + filename);
                         Directory.CreateDirectory(tvDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
                         var shouldMove = true;
                         if (File.Exists(tvDir + '\\' + filename))
@@ -266,7 +266,7 @@ namespace SimpleSFTPSyncCore
                     else
                     {
                         var filename = Rename.Movie(mkv);
-                        Log("Moving Movie " + mkv + " --> " + movieDir + '\\' + filename);
+                        Log("Moving Movie " + mkv + " -->\r\n     " + movieDir + '\\' + filename);
                         Directory.CreateDirectory(movieDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
                         var shouldMove = true;
                         if (File.Exists(movieDir + '\\' + filename))
@@ -297,6 +297,7 @@ namespace SimpleSFTPSyncCore
                     Log("!!ERROR!! during move of " + mkv + " - " + ex);
                 }
             }
+            log.Flush();
         }
 
         /// <summary>
