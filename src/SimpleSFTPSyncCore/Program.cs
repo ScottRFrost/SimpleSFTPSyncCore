@@ -34,7 +34,11 @@ namespace SimpleSFTPSyncCore
             {
                 var path = string.Join(" ", args).Substring(5);
                 var mkvs = new List<string>();
-                mkvs.AddRange(Directory.GetFiles(path, "*.mkv"));
+                mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.m2ts"));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.mp4"));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.avi"));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.m4v"));
                 if (mkvs.Count > 0)
                 {
                     var simpleSFTPSync = new SimpleSFTPSync();
@@ -47,7 +51,6 @@ namespace SimpleSFTPSyncCore
             {
                 var path = string.Join(" ", args).Substring(6);
                 Console.WriteLine(Rename.Movie(path));
-                
             }
 
             // Direct SQL command

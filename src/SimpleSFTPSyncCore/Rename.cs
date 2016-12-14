@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Net; // For URL Encode
 using System.Globalization;
 using Newtonsoft.Json.Linq;
+
 
 namespace SimpleSFTPSyncCore
 {
@@ -134,7 +136,7 @@ namespace SimpleSFTPSyncCore
                 var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
                 title = title.Substring(title.LastIndexOf("\\", StringComparison.Ordinal) + 1); // Strip Folder
                 var httpClient = new ProHttpClient();
-                dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + title + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
+                dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
                 if (omdbapi.Response == "False")
                 {
                     // Didn't find it, return a best guess

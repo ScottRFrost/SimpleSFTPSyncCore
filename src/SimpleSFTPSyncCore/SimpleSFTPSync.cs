@@ -267,7 +267,10 @@ namespace SimpleSFTPSyncCore
                     {
                         var filename = Rename.Movie(mkv);
                         Log("Moving Movie " + mkv + " -->\r\n     " + movieDir + '\\' + filename);
-                        Directory.CreateDirectory(movieDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
+                        if (filename.Contains("\\"))
+                        {
+                            Directory.CreateDirectory(movieDir + '\\' + filename.Substring(0, filename.LastIndexOf("\\", StringComparison.Ordinal)));
+                        }
                         var shouldMove = true;
                         if (File.Exists(movieDir + '\\' + filename))
                         {

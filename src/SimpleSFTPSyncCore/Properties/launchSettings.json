@@ -1,7 +1,8 @@
 {
   "profiles": {
     "SimpleSFTPSyncCore": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "move D:\\Downloads\\SSS\\A1\\Daddys.Home.2015.1080p.BluRay.x264-GECKOS"
     }
   }
 }
