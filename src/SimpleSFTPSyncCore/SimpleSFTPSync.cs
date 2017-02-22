@@ -130,7 +130,7 @@ namespace SimpleSFTPSyncCore
                                         // Sync SFTP
                                         // sftp.DownloadFile(remoteDir + syncFile.RemotePath, fileStream);
 
-                                        scp.Download(syncFile.RemotePath, new DirectoryInfo(localDirectory));
+                                        scp.Download(remoteDir + syncFile.RemotePath, new DirectoryInfo(localDirectory));
 
                                         var endTime = DateTime.Now;
 

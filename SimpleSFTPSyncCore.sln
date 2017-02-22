@@ -1,16 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26206.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C055C2CF-836F-4403-BE25-CF5C337961E5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{34205E5B-D31E-4F2D-8F14-85FCC72F411D}"
-	ProjectSection(SolutionItems) = preProject
-		global.json = global.json
-	EndProjectSection
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "SimpleSFTPSyncCore", "src\SimpleSFTPSyncCore\SimpleSFTPSyncCore.xproj", "{B01DA869-56DA-409D-BE03-38BA9A39FD9A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleSFTPSyncCore", "src\SimpleSFTPSyncCore\SimpleSFTPSyncCore.csproj", "{B01DA869-56DA-409D-BE03-38BA9A39FD9A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
