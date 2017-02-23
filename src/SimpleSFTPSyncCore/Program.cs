@@ -24,6 +24,7 @@ namespace SimpleSFTPSyncCore
                 Console.WriteLine("Usage: dotnet SimpleSFTPSync.dll {options}");
                 Console.WriteLine("No options - Begin main sync");
                 Console.WriteLine("move {path name} - Moves *.mkvs in the given path");
+                Console.WriteLine("copy {path name} - Copies *.mkvs in the given path");
                 Console.WriteLine("movie {path name} - Test renaming for a given movie path");
                 Console.WriteLine("sql {sql command text} - Execute the command text against SimpleSFTPSync's sqlite database");
                 Console.WriteLine("tv {path name} - Test renaming for a given tv path");
@@ -33,16 +34,37 @@ namespace SimpleSFTPSyncCore
             else if (args[0] == "move")
             {
                 var path = string.Join(" ", args).Substring(5);
+                Console.WriteLine("Moving for path: " + path);
                 var mkvs = new List<string>();
                 mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
                 ////mkvs.AddRange(Directory.GetFiles(path, "*.m2ts"));
                 ////mkvs.AddRange(Directory.GetFiles(path, "*.mp4"));
                 ////mkvs.AddRange(Directory.GetFiles(path, "*.avi"));
                 ////mkvs.AddRange(Directory.GetFiles(path, "*.m4v"));
+                Console.WriteLine("Found: " + mkvs.Count);
                 if (mkvs.Count > 0)
                 {
                     var simpleSFTPSync = new SimpleSFTPSync();
                     simpleSFTPSync.MoveFiles(mkvs);
+                }
+            }
+
+            // Copy a folder full of TV / movies
+            else if (args[0] == "copy")
+            {
+                var path = string.Join(" ", args).Substring(5);
+                Console.WriteLine("Copying for path: " + path);
+                var mkvs = new List<string>();
+                mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.m2ts"));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.mp4"));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.avi"));
+                ////mkvs.AddRange(Directory.GetFiles(path, "*.m4v"));
+                Console.WriteLine("Found: " + mkvs.Count);
+                if (mkvs.Count > 0)
+                {
+                    var simpleSFTPSync = new SimpleSFTPSync();
+                    simpleSFTPSync.MoveFiles(mkvs, true);
                 }
             }
 
@@ -67,8 +89,6 @@ namespace SimpleSFTPSyncCore
                 var path = string.Join(" ", args).Substring(3);
                 Console.WriteLine(Rename.TV(path));
             }
-
-            
         }
     }
 }

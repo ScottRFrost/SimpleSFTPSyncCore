@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net; // For URL Encode
+using System.IO; // For Path
 using System.Globalization;
 using Newtonsoft.Json.Linq;
 
@@ -16,7 +17,7 @@ namespace SimpleSFTPSyncCore
         static string Clean(this string filename)
         {
             // Determine if we want to try to operate on the filename itself or the parent folder
-            var chunks = filename.Split('\\');
+            var chunks = filename.Split(Path.DirectorySeparatorChar);
             if (chunks.Length > 1)
             {
                 var parentFolder = chunks[chunks.Length - 2];
@@ -134,7 +135,7 @@ namespace SimpleSFTPSyncCore
 
                 // Attempt OMDBAPI Check
                 var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
-                title = title.Substring(title.LastIndexOf("\\", StringComparison.Ordinal) + 1); // Strip Folder
+                title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
                 var httpClient = new ProHttpClient();
                 dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
                 if (omdbapi.Response == "False")
@@ -157,9 +158,9 @@ namespace SimpleSFTPSyncCore
                 else if (genres.Contains("History")) { genre = "Documentary"; }
                 else if (genres.Contains("Drama")) { genre = "Drama"; }
                 else if (genres.Contains("Adventure")) { genre = "Adventure"; }
-                return (genre +"\\" + (string)omdbapi.Title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv").CleanFilePath();
+                return genre + Path.DirectorySeparatorChar + ((string)omdbapi.Title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv").CleanFilePath();
             }
-            return filename.Substring(filename.LastIndexOf("\\", StringComparison.Ordinal) + 1).CleanFilePath();
+            return filename.Substring(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath();
         }
 
         /// <summary>
@@ -183,21 +184,21 @@ namespace SimpleSFTPSyncCore
                     {
                         // Attempt OMDBAPI Check
                         var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
-                        title = title.Substring(title.LastIndexOf("\\", StringComparison.Ordinal) + 1); // Strip Folder
+                        title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
                         var httpClient = new ProHttpClient();
                         dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title).Result);
                         if (omdbapi.Response == "False")
                         {
                             // Didn't find it, return a best guess
-                            return (title.CleanFilePath() + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv");
+                            return (title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv");
                         }
                         // Found it, use the corrected title
                         title = (string)omdbapi.Title;
-                        return (title.CleanFilePath() + "\\Season " + season.ToString(CultureInfo.InvariantCulture) + "\\" + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
+                        return (title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
                     }
                 }
             }
-            return filename.Substring(filename.LastIndexOf("\\", StringComparison.Ordinal) + 1).CleanFilePath();
+            return filename.Substring(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath();
         }
     }
 }
