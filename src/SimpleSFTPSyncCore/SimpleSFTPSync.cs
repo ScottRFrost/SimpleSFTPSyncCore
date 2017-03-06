@@ -17,6 +17,7 @@ namespace SimpleSFTPSyncCore
         JObject config;
         FileStream log;
         SimpleSFTPSyncCoreContext db;
+        readonly object dbLock;
         string hostname;
         int port;
         string username;
@@ -96,7 +97,7 @@ namespace SimpleSFTPSyncCore
                                     {
                                         Log(syncFile.RemotePath + " and " + localPath + " are the same size.  Skipping.");
                                         syncFile.DateDownloaded = DateTime.Now.ToString();
-                                        db.SaveChanges();
+                                        //db.SaveChanges();
                                         continue;
                                     }
 
@@ -152,7 +153,7 @@ namespace SimpleSFTPSyncCore
                                     {
 
                                         syncFile.DateDownloaded = DateTime.Now.ToString();
-                                        db.SaveChanges();
+                                        //db.SaveChanges();
 
                                         if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
                                         {
@@ -169,7 +170,7 @@ namespace SimpleSFTPSyncCore
                                 {
                                     Log(syncFile.RemotePath + " no longer exists");
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
-                                    db.SaveChanges();
+                                    //db.SaveChanges();
                                 }
                             }
                             catch (Exception exception)
@@ -178,6 +179,7 @@ namespace SimpleSFTPSyncCore
                             }
                         }
                         scp.Disconnect();
+                        db.SaveChanges();
                     }
                     sftp.Disconnect();
                 }
