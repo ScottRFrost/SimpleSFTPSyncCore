@@ -194,7 +194,7 @@ namespace SimpleSFTPSyncCore
                         }
                         // Found it, use the corrected title
                         title = (string)omdbapi.Title;
-                        return (title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv").CleanFilePath();
+                        return (title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv");
                     }
                 }
             }

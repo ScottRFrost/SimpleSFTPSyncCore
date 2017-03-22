@@ -247,14 +247,18 @@ namespace SimpleSFTPSyncCore
                         var filePath = Path.Combine(tvDir, filename);
                         if (CopyInsteadOfMove)
                         {
-                            Log("Moving TV " + mkv + " -->\r\n     " + filePath);
+                            Log("Copying TV " + mkv + " -->\r\n     " + filePath);
                         }
                         else
                         {
-                            Log("Copying TV " + mkv + " -->\r\n     " + filePath);
+                            Log("Moving TV " + mkv + " -->\r\n     " + filePath);
                         }
                         
-                        Directory.CreateDirectory(Path.Combine(tvDir,filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar))));
+                        if (filename.Contains(Path.DirectorySeparatorChar))
+                        {
+                            Directory.CreateDirectory(tvDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
+                        }
+
                         var shouldMove = true;
                         if (File.Exists(filePath))
                         {
