@@ -80,107 +80,107 @@ namespace SimpleSFTPSyncCore
 
 
                     // Download and queue up unrar / rename.  For some reason SCP is much faster for downloads.
-                    using (var scp = new ScpClient(hostname, port, username, password))
+                    foreach (var syncFile in db.SyncFile.Where(f => f.DateDownloaded == null).OrderBy(f => f.DateDiscovered))
                     {
-                        scp.Connect();
-                        scp.Downloading += Scp_Downloading;
-                        foreach (var syncFile in db.SyncFile.Where(f => f.DateDownloaded == null).OrderBy(f => f.DateDiscovered))
+                        try
                         {
-                            try
+                            var localPath = downloadDir + (syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString()));
+                            var localDirectory = localPath.Substring(0, localPath.LastIndexOf(Path.DirectorySeparatorChar));
+                            if (File.Exists(localPath))
                             {
-                                var localPath = downloadDir + (syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString()));
-                                var localDirectory = localPath.Substring(0, localPath.LastIndexOf(Path.DirectorySeparatorChar));
-                                if (File.Exists(localPath))
+                                var localFile = new FileInfo(localPath);
+                                if (localFile.Length == syncFile.Length)
                                 {
-                                    var localFile = new FileInfo(localPath);
-                                    if (localFile.Length == syncFile.Length)
-                                    {
-                                        Log(syncFile.RemotePath + " and " + localPath + " are the same size.  Skipping.");
-                                        syncFile.DateDownloaded = DateTime.Now.ToString();
-                                        //db.SaveChanges();
-                                        continue;
-                                    }
-
-                                    Log(syncFile.RemotePath + " and " + localPath + " are different sizes.  Replacing.");
-                                    File.Delete(localPath);
-                                }
-                                if (sftp.Exists(remoteDir + syncFile.RemotePath))
-                                {
-                                    if (!Directory.Exists(localDirectory))
-                                    {
-                                        Directory.CreateDirectory(localDirectory);
-                                    }
-
-                                    // Download File
-                                    var success = false;
-
-                                    Log("Downloading " + remoteDir + syncFile.RemotePath + " -->\r\n     " + localPath);
-                                    try
-                                    {
-                                        var startTime = DateTime.Now;
-
-                                        // ASync SFTP
-                                        //using (var fileStream = File.OpenWrite(localPath))
-                                        //{
-                                        //var download = (SftpDownloadAsyncResult)sftp.BeginDownloadFile(syncFile.RemotePath, fileStream);
-                                        //ulong lastDownloadedBytes = 0;
-                                        //while (!download.IsCompleted)
-                                        //{
-                                        //    Status(string.Format("Downloaded {0:n0} / {1:n0} KB @ {2:n0} KB/sec", download.DownloadedBytes / 1024, syncFile.Length / 1024, (download.DownloadedBytes - lastDownloadedBytes) / 1024));
-                                        //    lastDownloadedBytes = download.DownloadedBytes;
-                                        //    Thread.Sleep(1000);
-                                        //}
-                                        //}
-
-                                        // Sync SFTP
-                                        // sftp.DownloadFile(remoteDir + syncFile.RemotePath, fileStream);
-
-                                        scp.Download(remoteDir + syncFile.RemotePath, new DirectoryInfo(localDirectory));
-
-                                        var endTime = DateTime.Now;
-
-                                        var timespan = TimeSpan.FromSeconds((endTime - startTime).TotalSeconds);
-                                        Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", (syncFile.Length / 1024) / timespan.TotalSeconds));
-                                        success = true;
-                                    }
-                                    catch (Exception exception)
-                                    {
-                                        Log("!!ERROR!! while downloading " + remoteDir + syncFile.RemotePath + " - " + exception);
-                                    }
-
-                                    // Check for Rars or MKVs
-                                    if (success)
-                                    {
-
-                                        syncFile.DateDownloaded = DateTime.Now.ToString();
-                                        //db.SaveChanges();
-
-                                        if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
-                                        {
-                                            rars.Add(localPath);
-                                            Log("Added " + localPath + " to auto-unrar queue");
-                                        }
-                                        else if (localPath.EndsWith(".mkv", StringComparison.Ordinal))
-                                        {
-                                            mkvs.Add(localPath);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    Log(syncFile.RemotePath + " no longer exists");
+                                    Log(syncFile.RemotePath + " and " + localPath + " are the same size.  Skipping.");
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
                                     //db.SaveChanges();
+                                    continue;
+                                }
+
+                                Log(syncFile.RemotePath + " and " + localPath + " are different sizes.  Replacing.");
+                                File.Delete(localPath);
+                            }
+                            if (sftp.Exists(remoteDir + syncFile.RemotePath))
+                            {
+                                if (!Directory.Exists(localDirectory))
+                                {
+                                    Directory.CreateDirectory(localDirectory);
+                                }
+
+                                // Download File
+                                var success = false;
+
+                                Log("Downloading " + remoteDir + syncFile.RemotePath + " -->\r\n     " + localPath);
+                                try
+                                {
+                                    var startTime = DateTime.Now;
+
+                                // ASync SFTP
+                                //using (var fileStream = File.OpenWrite(localPath))
+                                //{
+                                //var download = (SftpDownloadAsyncResult)sftp.BeginDownloadFile(syncFile.RemotePath, fileStream);
+                                //ulong lastDownloadedBytes = 0;
+                                //while (!download.IsCompleted)
+                                //{
+                                //    Status(string.Format("Downloaded {0:n0} / {1:n0} KB @ {2:n0} KB/sec", download.DownloadedBytes / 1024, syncFile.Length / 1024, (download.DownloadedBytes - lastDownloadedBytes) / 1024));
+                                //    lastDownloadedBytes = download.DownloadedBytes;
+                                //    Thread.Sleep(1000);
+                                //}
+                                //}
+
+                                // Sync SFTP
+                                // sftp.DownloadFile(remoteDir + syncFile.RemotePath, fileStream);
+                                using (var scp = new ScpClient(hostname, port, username, password))
+                                {
+                                    scp.Connect();
+                                    scp.Downloading += Scp_Downloading;
+                                    scp.Download(remoteDir + syncFile.RemotePath, new DirectoryInfo(localDirectory));
+                                    scp.Disconnect();
+                                }
+
+                                var endTime = DateTime.Now;
+
+                                var timespan = TimeSpan.FromSeconds((endTime - startTime).TotalSeconds);
+                                Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", (syncFile.Length / 1024) / timespan.TotalSeconds));
+                                success = true;
+                                }
+                                catch (Exception exception)
+                                {
+                                    Log("!!ERROR!! while downloading " + remoteDir + syncFile.RemotePath + " - " + exception);
+                                }
+
+                                // Check for Rars or MKVs
+                                if (success)
+                                {
+
+                                    syncFile.DateDownloaded = DateTime.Now.ToString();
+                                    //db.SaveChanges();
+
+                                    if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
+                                    {
+                                        rars.Add(localPath);
+                                        Log("Added " + localPath + " to auto-unrar queue");
+                                    }
+                                    else if (localPath.EndsWith(".mkv", StringComparison.Ordinal))
+                                    {
+                                        mkvs.Add(localPath);
+                                    }
                                 }
                             }
-                            catch (Exception exception)
+                            else
                             {
-                                Log("!!ERROR!! while downloading and scanning " + remoteDir + syncFile.RemotePath + " - " + exception);
+                                Log(syncFile.RemotePath + " no longer exists");
+                                syncFile.DateDownloaded = DateTime.Now.ToString();
+                                //db.SaveChanges();
                             }
                         }
-                        scp.Disconnect();
-                        db.SaveChanges();
+                        catch (Exception exception)
+                        {
+                            Log("!!ERROR!! while downloading and scanning " + remoteDir + syncFile.RemotePath + " - " + exception);
+                        }
                     }
+                    db.SaveChanges();
+                    
                     sftp.Disconnect();
                 }
 
