@@ -14,22 +14,22 @@ namespace SimpleSFTPSyncCore
 {
     public class SimpleSFTPSync
     {
-        JObject config;
-        FileStream log;
-        SimpleSFTPSyncCoreContext db;
-        readonly object dbLock;
-        string hostname;
-        int port;
-        string username;
-        string password;
-        string fingerprint;
-        string remoteDir;
-        string downloadDir;
-        string unrar;
-        string movieDir;
-        string tvDir;
-        List<string> rars;
-        List<string> mkvs;
+        private readonly JObject config;
+        private FileStream log;
+        private SimpleSFTPSyncCoreContext db;
+        private readonly object dbLock;
+        private readonly string hostname;
+        private readonly int port;
+        private readonly string username;
+        private readonly string password;
+        private readonly string fingerprint;
+        private readonly string remoteDir;
+        private readonly string downloadDir;
+        private readonly string unrar;
+        private readonly string movieDir;
+        private readonly string tvDir;
+        private List<string> rars;
+        private List<string> mkvs;
 
         public SimpleSFTPSync()
         {

@@ -137,10 +137,19 @@ namespace SimpleSFTPSyncCore
                 var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
                 title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
                 var httpClient = new ProHttpClient();
-                dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
-                if (omdbapi.Response == "False")
+                dynamic omdbapi;
+                try
                 {
-                    // Didn't find it, return a best guess
+                    omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
+                    if (omdbapi.Response == "False")
+                    {
+                        // Didn't find it, return a best guess
+                        return title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
+                    }
+                }
+                catch
+                {
+                    // Download died, return a best guess
                     return title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
                 }
 
@@ -186,15 +195,25 @@ namespace SimpleSFTPSyncCore
                         var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
                         title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
                         var httpClient = new ProHttpClient();
-                        dynamic omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title).Result);
-                        if (omdbapi.Response == "False")
+                        dynamic omdbapi;
+                        try
                         {
-                            // Didn't find it, return a best guess
-                            return (title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv");
+                            omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title).Result);
+                            if (omdbapi.Response == "False")
+                            {
+                                // Didn't find it, return a best guess
+                                return title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                            }
                         }
+                        catch
+                        {
+                            // Download died, return a best guess
+                            return title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                        }
+                         
                         // Found it, use the corrected title
                         title = (string)omdbapi.Title;
-                        return (title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv");
+                        return title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                     }
                 }
             }
