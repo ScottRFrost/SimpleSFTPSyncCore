@@ -1,0 +1,12 @@
+﻿{
+  "hostname": "",
+  "port": "22",
+  "username": "",
+  "password": "",
+  "fingerprint": "",
+  "remoteDir": "/",
+  "downloadDir": "D:\\Download",
+  "movieDir": "D:\\Movies",
+  "tvDir": "D:\\TV",
+  "unrar": "Unrar.exe"
+}
