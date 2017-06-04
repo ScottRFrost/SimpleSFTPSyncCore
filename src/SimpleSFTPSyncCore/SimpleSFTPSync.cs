@@ -28,6 +28,7 @@ namespace SimpleSFTPSyncCore
         private readonly string unrar;
         private readonly string movieDir;
         private readonly string tvDir;
+        private readonly string omdbKey;
         private List<string> rars;
         private List<string> mkvs;
 
@@ -56,6 +57,7 @@ namespace SimpleSFTPSyncCore
             unrar = config["unrar"].Value<string>();
             movieDir = config["movieDir"].Value<string>();
             tvDir = config["tvDir"].Value<string>();
+            omdbKey = config["omdbKey"].Value<string>();
             rars = new List<string>();
             mkvs = new List<string>();
             Log("Configuration Read");
@@ -243,7 +245,7 @@ namespace SimpleSFTPSyncCore
                     // Determine if TV or Movie
                     if (Rename.IsTV(mkv))
                     {
-                        var filename = Rename.TV(mkv);
+                        var filename = Rename.TV(mkv, omdbKey);
                         var filePath = Path.Combine(tvDir, filename);
                         if (CopyInsteadOfMove)
                         {
@@ -300,7 +302,7 @@ namespace SimpleSFTPSyncCore
                     }
                     else
                     {
-                        var filename = Rename.Movie(mkv);
+                        var filename = Rename.Movie(mkv, omdbKey);
                         var filePath = Path.Combine(movieDir, filename);
                         if (CopyInsteadOfMove)
                         {

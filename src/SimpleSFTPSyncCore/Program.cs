@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 // To update DB Context: Scaffold-DbContext "Filename={full path here}\SimpleSFTPSyncCore.sqlite" Microsoft.EntityFrameworkCore.Sqlite -Force
 // Simple DB GUI at http://sqlitebrowser.org/
 
@@ -71,8 +72,15 @@ namespace SimpleSFTPSyncCore
             // Test parse Movie Name
             else if (args[0] == "movie")
             {
+                // Read configuration
+                var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                var fileText = File.ReadAllText(configPath);
+                var config = JObject.Parse(fileText);
+                var omdbKey = config["omdbKey"].Value<string>();
+
+                // Parse
                 var path = string.Join(" ", args).Substring(6);
-                Console.WriteLine(Rename.Movie(path));
+                Console.WriteLine(Rename.Movie(path, omdbKey));
             }
 
             // Direct SQL command
@@ -86,8 +94,15 @@ namespace SimpleSFTPSyncCore
             // Test parse TV 
             else if (args[0] == "tv")
             {
+                // Read configuration
+                var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                var fileText = File.ReadAllText(configPath);
+                var config = JObject.Parse(fileText);
+                var omdbKey = config["omdbKey"].Value<string>();
+
+                // Parse
                 var path = string.Join(" ", args).Substring(3);
-                Console.WriteLine(Rename.TV(path));
+                Console.WriteLine(Rename.TV(path, omdbKey));
             }
         }
     }

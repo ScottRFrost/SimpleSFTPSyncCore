@@ -119,7 +119,7 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Renamed Version</returns>
-        public static string Movie(string filename)
+        public static string Movie(string filename, string omdbKey)
         {
             filename = filename.Clean();
 
@@ -140,7 +140,7 @@ namespace SimpleSFTPSyncCore
                 dynamic omdbapi;
                 try
                 {
-                    omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture)).Result);
+                    omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture) + "&apikey=" + omdbKey).Result);
                     if (omdbapi.Response == "False")
                     {
                         // Didn't find it, return a best guess
@@ -177,7 +177,7 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Renamed Version</returns>
-        public static string TV(string filename)
+        public static string TV(string filename, string omdbKey)
         {
             filename = filename.Clean();
 
@@ -198,7 +198,7 @@ namespace SimpleSFTPSyncCore
                         dynamic omdbapi;
                         try
                         {
-                            omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title).Result);
+                            omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title + "&apikey=" + omdbKey).Result);
                             if (omdbapi.Response == "False")
                             {
                                 // Didn't find it, return a best guess

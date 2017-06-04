@@ -8,5 +8,6 @@
   "downloadDir": "D:\\Download",
   "movieDir": "D:\\Movies",
   "tvDir": "D:\\TV",
-  "unrar": "Unrar.exe"
+  "unrar": "Unrar.exe",
+  "omdbKey":  ""
 }
