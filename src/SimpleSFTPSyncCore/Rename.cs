@@ -122,6 +122,8 @@ namespace SimpleSFTPSyncCore
         public static string Movie(string filename, string omdbKey)
         {
             filename = filename.Clean();
+            var culture = CultureInfo.CurrentCulture;
+            var textInfo = culture.TextInfo;
 
             // Usually 'Movie Name yyyy' followed by garbage
             for (var year = 1960; year < 2030; year++)
@@ -144,13 +146,14 @@ namespace SimpleSFTPSyncCore
                     if (omdbapi.Response == "False")
                     {
                         // Didn't find it, return a best guess
-                        return title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
+                        return title.ToLowerInvariant().ToTitleCase() + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.Write("Exception during rename: " + ex);
                     // Download died, return a best guess
-                    return title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
+                    return title.ToLowerInvariant().ToTitleCase() + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
                 }
 
                 // Found it, put it in the correct folder
@@ -180,6 +183,8 @@ namespace SimpleSFTPSyncCore
         public static string TV(string filename, string omdbKey)
         {
             filename = filename.Clean();
+            var culture = CultureInfo.CurrentCulture;
+            var textInfo = culture.TextInfo;
 
             // Usually 'Show Name s##e##' followed by garbage
             filename = filename.Replace("HDTV", string.Empty).Replace("Webrip", string.Empty);
@@ -193,7 +198,7 @@ namespace SimpleSFTPSyncCore
                     {
                         // Attempt OMDBAPI Check
                         var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
-                        title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
+                        title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath().ToLowerInvariant().ToTitleCase(); // Strip Folder, junk, and set to Title Case
                         var httpClient = new ProHttpClient();
                         dynamic omdbapi;
                         try
@@ -202,18 +207,19 @@ namespace SimpleSFTPSyncCore
                             if (omdbapi.Response == "False")
                             {
                                 // Didn't find it, return a best guess
-                                return title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                                return title + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                             }
                         }
-                        catch
+                        catch(Exception ex)
                         {
+                            Console.Write("Exception during rename: " + ex);
                             // Download died, return a best guess
-                            return title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                            return title + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                         }
                          
                         // Found it, use the corrected title
                         title = (string)omdbapi.Title;
-                        return title.CleanFilePath() + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title.CleanFilePath() + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                        return title+ Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                     }
                 }
             }
