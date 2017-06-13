@@ -1,8 +1,7 @@
 {
   "profiles": {
     "SimpleSFTPSyncCore": {
-      "commandName": "Project",
-      "commandLineArgs": "move D:\\Downloads\\SSS\\Movies"
+      "commandName": "Project"
     }
   }
 }

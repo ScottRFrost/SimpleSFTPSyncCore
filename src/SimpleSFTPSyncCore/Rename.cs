@@ -9,6 +9,29 @@ namespace SimpleSFTPSyncCore
 {
     static class Rename
     {
+        public enum tmdbGenres
+        {
+            Action = 28,
+            Adventure = 12,
+            Animation = 16,
+            Comedy = 35,
+            Crime = 80,
+            Documentary = 99,
+            Drama = 18,
+            Family = 10751,
+            Fantasy = 14,
+            History = 36,
+            Horror = 27,
+            Music = 10402,
+            Mystery = 9648,
+            Romance = 10749,
+            Science_Fiction = 878,
+            TV_Movie = 10770,
+            Thriller = 53,
+            War = 10752,
+            Western = 37
+        }
+
         /// <summary>
         /// Shared cleaning code
         /// </summary>
@@ -119,7 +142,7 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Renamed Version</returns>
-        public static string Movie(string filename, string omdbKey)
+        public static string Movie(string filename, string tmdbKey)
         {
             filename = filename.Clean();
             var culture = CultureInfo.CurrentCulture;
@@ -135,19 +158,49 @@ namespace SimpleSFTPSyncCore
                     continue;
                 }
 
-                // Attempt OMDBAPI Check
+                // Attempt tmdbAPI Check
                 var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
+                if (title.EndsWith("-"))
+                {
+                    title = title.Substring(0, title.Length - 1).Trim();
+                }
                 title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
                 var httpClient = new ProHttpClient();
-                dynamic omdbapi;
+                dynamic tmdb;
                 try
                 {
-                    omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=movie&t=" + WebUtility.UrlEncode(title) + "&y=" + year.ToString(CultureInfo.InvariantCulture) + "&apikey=" + omdbKey).Result);
-                    if (omdbapi.Response == "False")
+                    tmdb = JObject.Parse(httpClient.DownloadString("https://api.themoviedb.org/3/search/movie?query=" + WebUtility.UrlEncode(title) + "&language=en-US&year=" + year.ToString(CultureInfo.InvariantCulture) + "&include_adult=false&api_key=" + tmdbKey).Result);
+                    if (tmdb.total_results == null || (int)(tmdb.total_results) == 0)
                     {
                         // Didn't find it, return a best guess
                         return title.ToLowerInvariant().ToTitleCase() + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
                     }
+
+                    // Found it, put it in the correct folder
+                    var genres = string.Empty;
+
+                    // Look up genre IDs to names
+                    if (tmdb.results[0].genre_ids != null)
+                    {
+                        foreach(int genreID in tmdb.results[0].genre_ids)
+                        {
+                            genres += Enum.GetName(typeof(tmdbGenres), genreID) + ",";
+                        }
+                    }
+
+                    var genre = "Action";
+                    if (genres.Contains("Romance")) { genre = "Chick Flick"; }
+                    else if (genres.Contains("Animation")) { genre = "Animation"; }
+                    else if (genres.Contains("Horror")) { genre = "Horror"; }
+                    else if (genres.Contains("Family")) { genre = "Family"; }
+                    else if (genres.Contains("Science_Fiction")) { genre = "Science Fiction"; }
+                    else if (genres.Contains("Fantasy")) { genre = "Science Fiction"; }
+                    else if (genres.Contains("Comedy")) { genre = "Comedy"; }
+                    else if (genres.Contains("Documentary")) { genre = "Documentary"; }
+                    else if (genres.Contains("History")) { genre = "Documentary"; }
+                    else if (genres.Contains("Drama")) { genre = "Drama"; }
+                    else if (genres.Contains("Adventure")) { genre = "Adventure"; }
+                    return genre + Path.DirectorySeparatorChar + ((string)tmdb.results[0].title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv").CleanFilePath();
                 }
                 catch (Exception ex)
                 {
@@ -155,23 +208,9 @@ namespace SimpleSFTPSyncCore
                     // Download died, return a best guess
                     return title.ToLowerInvariant().ToTitleCase() + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv";
                 }
-
-                // Found it, put it in the correct folder
-                var genre = "Action";
-                var genres = (string)omdbapi.Genre;
-                if (genres.Contains("Romance")) { genre = "Chick Flick";  }
-                else if (genres.Contains("Animation")) { genre = "Animation"; }
-                else if (genres.Contains("Horror")) { genre = "Horror"; }
-                else if (genres.Contains("Family")) { genre = "Family"; }
-                else if (genres.Contains("Science Fiction")) { genre = "Science Fiction"; }
-                else if (genres.Contains("Fantasy")) { genre = "Science Fiction"; }
-                else if (genres.Contains("Comedy")) { genre = "Comedy"; }
-                else if (genres.Contains("Documentary")) { genre = "Documentary"; }
-                else if (genres.Contains("History")) { genre = "Documentary"; }
-                else if (genres.Contains("Drama")) { genre = "Drama"; }
-                else if (genres.Contains("Adventure")) { genre = "Adventure"; }
-                return genre + Path.DirectorySeparatorChar + ((string)omdbapi.Title + " (" + year.ToString(CultureInfo.InvariantCulture) + ").mkv").CleanFilePath();
             }
+
+            // Year not found, punt
             return filename.Substring(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath();
         }
 
@@ -180,7 +219,7 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Renamed Version</returns>
-        public static string TV(string filename, string omdbKey)
+        public static string TV(string filename, string tmdbKey)
         {
             filename = filename.Clean();
             var culture = CultureInfo.CurrentCulture;
@@ -196,19 +235,27 @@ namespace SimpleSFTPSyncCore
                     var idx = filename.ToUpperInvariant().IndexOf(episodeNumber, StringComparison.Ordinal);
                     if (idx > 0)
                     {
-                        // Attempt OMDBAPI Check
+                        // Attempt tmdbAPI Check
                         var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
+                        if (title.EndsWith("-"))
+                        {
+                            title = title.Substring(0, title.Length - 1).Trim();
+                        }
                         title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath().ToLowerInvariant().ToTitleCase(); // Strip Folder, junk, and set to Title Case
                         var httpClient = new ProHttpClient();
-                        dynamic omdbapi;
+                        dynamic tmdb;
                         try
                         {
-                            omdbapi = JObject.Parse(httpClient.DownloadString("http://www.omdbapi.com/?type=series&t=" + title + "&apikey=" + omdbKey).Result);
-                            if (omdbapi.Response == "False")
+                            tmdb = JObject.Parse(httpClient.DownloadString("https://api.themoviedb.org/3/search/tv?query=" + WebUtility.UrlEncode(title) + "&language=en-US&api_key=" + tmdbKey).Result);
+                            if (tmdb.total_results == null || (int)(tmdb.total_results) == 0)
                             {
                                 // Didn't find it, return a best guess
                                 return title + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                             }
+
+                            // Found it, use the corrected title
+                            title = (string)tmdb.results[0].name;
+                            return title + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                         }
                         catch(Exception ex)
                         {
@@ -216,13 +263,11 @@ namespace SimpleSFTPSyncCore
                             // Download died, return a best guess
                             return title + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                         }
-                         
-                        // Found it, use the corrected title
-                        title = (string)omdbapi.Title;
-                        return title+ Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                     }
                 }
             }
+
+            // Season / episode not found, punt
             return filename.Substring(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath();
         }
     }

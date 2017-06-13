@@ -76,11 +76,12 @@ namespace SimpleSFTPSyncCore
                 var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
                 var fileText = File.ReadAllText(configPath);
                 var config = JObject.Parse(fileText);
-                var omdbKey = config["omdbKey"].Value<string>();
+                var tmdbKey = config["tmdbKey"].Value<string>();
 
                 // Parse
                 var path = string.Join(" ", args).Substring(6);
-                Console.WriteLine(Rename.Movie(path, omdbKey));
+                Console.WriteLine(Rename.Movie(path, tmdbKey));
+                Console.ReadKey();
             }
 
             // Direct SQL command
@@ -98,11 +99,12 @@ namespace SimpleSFTPSyncCore
                 var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
                 var fileText = File.ReadAllText(configPath);
                 var config = JObject.Parse(fileText);
-                var omdbKey = config["omdbKey"].Value<string>();
+                var tmdbKey = config["tmdbKey"].Value<string>();
 
                 // Parse
                 var path = string.Join(" ", args).Substring(3);
-                Console.WriteLine(Rename.TV(path, omdbKey));
+                Console.WriteLine(Rename.TV(path, tmdbKey));
+                Console.ReadKey();
             }
         }
     }

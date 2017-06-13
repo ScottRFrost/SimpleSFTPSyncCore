@@ -1,13 +1,13 @@
 ﻿{
-  "hostname": "",
+  "hostname": "X",
   "port": "22",
-  "username": "",
-  "password": "",
-  "fingerprint": "",
+  "username": "X",
+  "password": "X",
+  "fingerprint": "X",
   "remoteDir": "/",
   "downloadDir": "D:\\Download",
   "movieDir": "D:\\Movies",
   "tvDir": "D:\\TV",
   "unrar": "Unrar.exe",
-  "omdbKey":  ""
+  "tmdbKey": "X"
 }
