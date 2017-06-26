@@ -255,6 +255,7 @@ namespace SimpleSFTPSyncCore
 
                             // Found it, use the corrected title
                             title = (string)tmdb.results[0].name;
+                            title = title.CleanFilePath();
                             return title + Path.DirectorySeparatorChar + "Season " + season.ToString(CultureInfo.InvariantCulture) + Path.DirectorySeparatorChar + title + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                         }
                         catch(Exception ex)
