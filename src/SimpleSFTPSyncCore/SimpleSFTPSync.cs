@@ -1,4 +1,8 @@
-﻿using System;
+﻿// SimpleSFTPSync by ScottRFrost - https://github.com/ScottRFrost/SimpleSFTPSync
+// Build with: dotnet compile
+// Publish with: dotnet publish -r win10-x64 / dotnet publish -r ubuntu.16.10-x64 etc
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,9 +19,10 @@ namespace SimpleSFTPSyncCore
     public class SimpleSFTPSync
     {
         private readonly JObject config;
-        private FileStream log;
+        private static string logPath;
         private SimpleSFTPSyncCoreContext db;
-        private readonly object dbLock;
+        private readonly object dbLock = new object();
+        private readonly object logLock = new object();
         private readonly string hostname;
         private readonly int port;
         private readonly string username;
@@ -38,9 +43,8 @@ namespace SimpleSFTPSyncCore
             db = new SimpleSFTPSyncCoreContext();
 
             // Open Log File
-            var logPath = Path.Combine(Directory.GetCurrentDirectory(), DateTime.Now.ToString("MM-dd-yyyy") + ".log");
+            logPath = Path.Combine(Directory.GetCurrentDirectory(), DateTime.Now.ToString("MM-dd-yyyy") + ".log");
             Console.WriteLine("Logging to " + logPath);
-            log = File.OpenWrite(logPath);
 
             // Read configuration
             var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
@@ -95,7 +99,9 @@ namespace SimpleSFTPSyncCore
                                 {
                                     Log(syncFile.RemotePath + " and " + localPath + " are the same size.  Skipping.");
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
-                                    //db.SaveChanges();
+                                    lock(dbLock) {
+                                        db.SaveChanges();
+                                    }
                                     continue;
                                 }
 
@@ -156,7 +162,10 @@ namespace SimpleSFTPSyncCore
                                 {
 
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
-                                    //db.SaveChanges();
+                                    lock(dbLock)
+                                    {
+                                        db.SaveChanges();
+                                    }
 
                                     if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
                                     {
@@ -173,7 +182,10 @@ namespace SimpleSFTPSyncCore
                             {
                                 Log(syncFile.RemotePath + " no longer exists");
                                 syncFile.DateDownloaded = DateTime.Now.ToString();
-                                //db.SaveChanges();
+                                lock(dbLock)
+                                {
+                                    db.SaveChanges();
+                                }
                             }
                         }
                         catch (Exception exception)
@@ -181,7 +193,10 @@ namespace SimpleSFTPSyncCore
                             Log("!!ERROR!! while downloading and scanning " + remoteDir + syncFile.RemotePath + " - " + exception);
                         }
                     }
-                    db.SaveChanges();
+                    lock(dbLock)
+                    {
+                        db.SaveChanges();
+                    }
                     
                     sftp.Disconnect();
                 }
@@ -219,16 +234,11 @@ namespace SimpleSFTPSyncCore
                 MoveFiles(mkvs);
                 
                 Log("All jobs complete.  Closing in 60 seconds...");
-                log.Flush();
                 Thread.Sleep(60000);
             }
             catch (Exception exception)
             {
                 Log("!!ERROR!! Unexpected top level error - " + exception);
-            }
-            finally
-            {
-                log.Flush();
             }
         }
 
@@ -361,7 +371,6 @@ namespace SimpleSFTPSyncCore
                     Log("!!ERROR!! during move of " + mkv + " - " + ex);
                 }
             }
-            log.Flush();
         }
 
         /// <summary>
@@ -405,15 +414,19 @@ namespace SimpleSFTPSyncCore
                         if (file == null)
                         {
                             Log("Found New file: " + filePath);
-                            db.SyncFile.Add(new SyncFile
+                            lock(dbLock)
                             {
-                                DateDiscovered = DateTime.Now.ToString(),
-                                DateDownloaded = null,
-                                Length = sftpFile.Length,
-                                RemoteDateModified = sftpFile.LastWriteTime.ToString(),
-                                RemotePath = filePath
-                            });
-                            db.SaveChanges();
+                                db.SyncFile.Add(new SyncFile
+                                {
+                                    DateDiscovered = DateTime.Now.ToString(),
+                                    DateDownloaded = null,
+                                    Length = sftpFile.Length,
+                                    RemoteDateModified = sftpFile.LastWriteTime.ToString(),
+                                    RemotePath = filePath
+                                });
+                                db.SaveChanges();
+                            }
+                            
                             foundFiles++;
                         }
                         else if (file.Length != sftpFile.Length || Convert.ToDateTime(file.RemoteDateModified) != sftpFile.LastWriteTime)
@@ -422,7 +435,10 @@ namespace SimpleSFTPSyncCore
                             file.DateDownloaded = null;
                             file.Length = sftpFile.Length;
                             file.RemoteDateModified = sftpFile.LastWriteTime.ToString();
-                            db.SaveChanges();
+                            lock(dbLock)
+                            {
+                                db.SaveChanges();
+                            }
                             foundFiles++;
                         }
                     }
@@ -445,7 +461,13 @@ namespace SimpleSFTPSyncCore
             Console.Title = logText;
             Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + " " + logText);
             var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
-            log.WriteAsync(logBytes, 0, logBytes.Length);
+            lock(logLock)
+            {
+                using(FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write))
+                {
+                    log.Write(logBytes, 0, logBytes.Length);
+                }  
+            }
         }
 
         /// <summary>
