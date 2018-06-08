@@ -458,7 +458,14 @@ namespace SimpleSFTPSyncCore
         /// <param name="logText">Text to display</param>
         public void Log(string logText)
         {
-            Console.Title = logText;
+            if (logText.Length > 127)
+            {
+                Console.Title = logText.Substring(0, 127);
+            }
+            else
+            {
+                Console.Title = logText;
+            }
             Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + " " + logText);
             var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
             lock(logLock)
@@ -466,7 +473,7 @@ namespace SimpleSFTPSyncCore
                 using(FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write))
                 {
                     log.Write(logBytes, 0, logBytes.Length);
-                }  
+                }
             }
         }
 
