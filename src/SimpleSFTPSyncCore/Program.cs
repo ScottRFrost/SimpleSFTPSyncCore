@@ -1,10 +1,12 @@
 ﻿using System;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using System.Diagnostics; // For process and process start
+using System.Threading; // For Thread Sleep
+
 // To update DB Context: Scaffold-DbContext "Filename={full path here}\SimpleSFTPSyncCore.sqlite" Microsoft.EntityFrameworkCore.Sqlite -Force
 // Simple DB GUI at http://sqlitebrowser.org/
 
@@ -75,6 +77,7 @@ namespace SimpleSFTPSyncCore
                     var path = string.Join(" ", args).Substring(5);
                     Log("Copying for path: " + path);
                     var mkvs = new List<string>();
+                    var rars = new List<string>();
                     if (path.Trim().EndsWith(".mkv"))
                     {
                         // Single File
@@ -84,12 +87,53 @@ namespace SimpleSFTPSyncCore
                     {
                         // Folder
                         mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
+
+                        // Rars
+                        rars.AddRange(Directory.GetFiles(path, "*.rar", SearchOption.AllDirectories));
                     }
                     ////mkvs.AddRange(Directory.GetFiles(path, "*.m2ts"));
                     ////mkvs.AddRange(Directory.GetFiles(path, "*.mp4"));
                     ////mkvs.AddRange(Directory.GetFiles(path, "*.avi"));
                     ////mkvs.AddRange(Directory.GetFiles(path, "*.m4v"));
-                    Log("Found: " + mkvs.Count);
+                    Log("Found: " + mkvs.Count + " mkvs and " + rars.Count + " rars");
+
+                    // Unrar
+                    if(rars.Count > 0)
+                    {
+                        foreach (var rar in rars)
+                        {
+                            var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                            Log("Reading Config from " + configPath);
+                            var fileText = File.ReadAllText(configPath);
+                            var config = JObject.Parse(fileText);
+                            var unrar = config["unrar"].Value<string>();
+                            try
+                            {
+                                var unrarFolder = rar.Substring(0, rar.LastIndexOf(Path.DirectorySeparatorChar) + 1) + "_unrar";
+                                if (!Directory.Exists(unrarFolder))
+                                {
+                                    Directory.CreateDirectory(unrarFolder);
+                                }
+                                Log("Unraring " + rar);
+                                var process = Process.Start(new ProcessStartInfo(unrar) { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); // x = extract, -o- = Don't overwrite or prompt to overwrite
+                                if (process == null)
+                                {
+                                    continue;
+                                }
+                                process.WaitForExit();
+                                Log("Unrared " + rar);
+                                Thread.Sleep(2000); // Wait for unrar to completely clean up
+                                mkvs.AddRange(Directory.GetFiles(unrarFolder, "*.mkv"));
+                            }
+                            catch (Exception exception)
+                            {
+                                Log("!!ERROR!! during Unrar of " + rar + " - " + exception);
+                            }
+                        }
+                    }
+                    
+
+                    // Process MKVs
                     if (mkvs.Count > 0)
                     {
                         var simpleSFTPSync = new SimpleSFTPSync();
