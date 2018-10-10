@@ -17,7 +17,7 @@ It also has command line options to move or copy .mkv files (with genre and smar
 As always, input is appreciated!
 
 
-Sample execute.bat file to use with Deluge execute plugin (assuming you run from C:\Users\YourUserNameHere\Downloads\SimpleSFTPSyncCore and you download to a folder with "Movies" in the path):
+Sample execute.bat file to use with [Deluge execute plugin](https://dev.deluge-torrent.org/wiki/Plugins/Execute) (assuming you run from C:\Users\YourUserNameHere\Downloads\SimpleSFTPSyncCore and you download to a folder with "Movies" in the path):
 
     @echo off
     set torrentid=%1
