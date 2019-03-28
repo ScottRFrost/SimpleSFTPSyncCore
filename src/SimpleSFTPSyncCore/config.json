@@ -4,7 +4,7 @@
   "username": "X",
   "password": "X",
   "fingerprint": "X",
-  "remoteDir": "/",
+  "remoteDir": [ "/Movies", "/TV" ],
   "downloadDir": "D:\\Download",
   "movieDir": "D:\\Movies",
   "tvDir": "D:\\TV",

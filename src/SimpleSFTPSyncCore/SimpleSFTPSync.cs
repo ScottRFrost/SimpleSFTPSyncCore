@@ -12,28 +12,17 @@ using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Text;
 using System.Diagnostics; // For process and process start
-
+using Newtonsoft.Json;
 
 namespace SimpleSFTPSyncCore
 {
     public class SimpleSFTPSync
     {
-        private readonly JObject config;
+        private readonly ConfigFile config;
         private static string logPath;
         private SimpleSFTPSyncCoreContext db;
         private readonly object dbLock = new object();
         private readonly object logLock = new object();
-        private readonly string hostname;
-        private readonly int port;
-        private readonly string username;
-        private readonly string password;
-        private readonly string fingerprint;
-        private readonly string remoteDir;
-        private readonly string downloadDir;
-        private readonly string unrar;
-        private readonly string movieDir;
-        private readonly string tvDir;
-        private readonly string tmdbKey;
         private List<string> rars;
         private List<string> mkvs;
 
@@ -50,18 +39,7 @@ namespace SimpleSFTPSyncCore
             var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
             Log("Reading Config from " + configPath);
             var fileText = File.ReadAllText(configPath);
-            config = JObject.Parse(fileText);
-            hostname = config["hostname"].Value<string>();
-            port = config["port"].Value<int>();
-            username = config["username"].Value<string>();
-            password = config["password"].Value<string>();
-            fingerprint = config["fingerprint"].Value<string>();
-            remoteDir = config["remoteDir"].Value<string>();
-            downloadDir = config["downloadDir"].Value<string>();
-            unrar = config["unrar"].Value<string>();
-            movieDir = config["movieDir"].Value<string>();
-            tvDir = config["tvDir"].Value<string>();
-            tmdbKey = config["tmdbKey"].Value<string>();
+            config = JsonConvert.DeserializeObject<ConfigFile>(fileText);
             rars = new List<string>();
             mkvs = new List<string>();
             Log("Configuration Read");
@@ -75,22 +53,25 @@ namespace SimpleSFTPSyncCore
             try
             {
                 // Make SFTP connection and do work
-                using (var sftp = new SftpClient(hostname, port, username, password))
+                using (var sftp = new SftpClient(config.hostname, config.port, config.username, config.password))
                 {
                     // Connect and scan
                     sftp.Connect();
-                    Log("Connected to " + hostname + " running " + sftp.ConnectionInfo.ServerVersion);
+                    Log("Connected to " + config.hostname + " running " + sftp.ConnectionInfo.ServerVersion);
                     Log("Checking for new files to download...");
-                    var foundFiles = ListFilesRecursive(sftp, remoteDir, string.Empty).ToString();
-                    Log(foundFiles + " files found for download");
-
+                    foreach(var remoteDir in config.remoteDir)
+                    {
+                        Log("Checking for new files in " + remoteDir);
+                        var foundFiles = ListFilesRecursive(sftp, remoteDir, string.Empty).ToString();
+                        Log(foundFiles + " files found for download in " + remoteDir);
+                    }
 
                     // Download and queue up unrar / rename.  For some reason SCP is much faster for downloads.
                     foreach (var syncFile in db.SyncFile.Where(f => f.DateDownloaded == null).OrderBy(f => f.DateDiscovered))
                     {
                         try
                         {
-                            var localPath = downloadDir + (syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString()));
+                            var localPath = config.downloadDir + (syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString()));
                             var localDirectory = localPath.Substring(0, localPath.LastIndexOf(Path.DirectorySeparatorChar));
                             if (File.Exists(localPath))
                             {
@@ -108,7 +89,7 @@ namespace SimpleSFTPSyncCore
                                 Log(syncFile.RemotePath + " and " + localPath + " are different sizes.  Replacing.");
                                 File.Delete(localPath);
                             }
-                            if (sftp.Exists(remoteDir + syncFile.RemotePath))
+                            if (sftp.Exists(syncFile.RemotePath))
                             {
                                 if (!Directory.Exists(localDirectory))
                                 {
@@ -118,7 +99,7 @@ namespace SimpleSFTPSyncCore
                                 // Download File
                                 var success = false;
 
-                                Log("Downloading " + remoteDir + syncFile.RemotePath + " -->\r\n     " + localPath);
+                                Log("Downloading " + syncFile.RemotePath + " -->\r\n     " + localPath);
                                 try
                                 {
                                     var startTime = DateTime.Now;
@@ -137,12 +118,11 @@ namespace SimpleSFTPSyncCore
                                 //}
 
                                 // Sync SFTP
-                                // sftp.DownloadFile(remoteDir + syncFile.RemotePath, fileStream);
-                                using (var scp = new ScpClient(hostname, port, username, password))
+                                using (var scp = new ScpClient(config.hostname, config.port, config.username, config.password))
                                 {
                                     scp.Connect();
                                     scp.Downloading += Scp_Downloading;
-                                    scp.Download(remoteDir + syncFile.RemotePath, new DirectoryInfo(localDirectory));
+                                    scp.Download(syncFile.RemotePath, new DirectoryInfo(localDirectory));
                                     scp.Disconnect();
                                 }
 
@@ -154,7 +134,7 @@ namespace SimpleSFTPSyncCore
                                 }
                                 catch (Exception exception)
                                 {
-                                    Log("!!ERROR!! while downloading " + remoteDir + syncFile.RemotePath + " - " + exception);
+                                    Log("!!ERROR!! while downloading " + syncFile.RemotePath + " - " + exception);
                                 }
 
                                 // Check for Rars or MKVs
@@ -190,7 +170,7 @@ namespace SimpleSFTPSyncCore
                         }
                         catch (Exception exception)
                         {
-                            Log("!!ERROR!! while downloading and scanning " + remoteDir + syncFile.RemotePath + " - " + exception);
+                            Log("!!ERROR!! while downloading and scanning " + syncFile.RemotePath + " - " + exception);
                         }
                     }
                     lock(dbLock)
@@ -214,7 +194,7 @@ namespace SimpleSFTPSyncCore
                             Directory.CreateDirectory(unrarFolder);
                         }
                         Log("Unraring " + rar);
-                        var process = Process.Start(new ProcessStartInfo(unrar) { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); // x = extract, -o- = Don't overwrite or prompt to overwrite
+                        var process = Process.Start(new ProcessStartInfo(config.unrar) { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); // x = extract, -o- = Don't overwrite or prompt to overwrite
                         if (process == null)
                         {
                             continue;
@@ -255,8 +235,8 @@ namespace SimpleSFTPSyncCore
                     // Determine if TV or Movie
                     if (Rename.IsTV(mkv))
                     {
-                        var filename = Rename.TV(mkv, tmdbKey);
-                        var filePath = Path.Combine(tvDir, filename);
+                        var filename = Rename.TV(mkv, config.tmdbKey);
+                        var filePath = Path.Combine(config.tvDir, filename);
                         if (CopyInsteadOfMove)
                         {
                             Log("Copying TV " + mkv + " -->\r\n     " + filePath);
@@ -268,7 +248,7 @@ namespace SimpleSFTPSyncCore
                         
                         if (filename.Contains(Path.DirectorySeparatorChar))
                         {
-                            Directory.CreateDirectory(tvDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
+                            Directory.CreateDirectory(config.tvDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
                         }
 
                         var shouldMove = true;
@@ -312,8 +292,8 @@ namespace SimpleSFTPSyncCore
                     }
                     else
                     {
-                        var filename = Rename.Movie(mkv, tmdbKey);
-                        var filePath = Path.Combine(movieDir, filename);
+                        var filename = Rename.Movie(mkv, config.tmdbKey);
+                        var filePath = Path.Combine(config.movieDir, filename);
                         if (CopyInsteadOfMove)
                         {
                             Log("Copying Movie " + mkv + " -->\r\n     " + filePath);
@@ -325,7 +305,7 @@ namespace SimpleSFTPSyncCore
                         
                         if (filename.Contains(Path.DirectorySeparatorChar))
                         {
-                            Directory.CreateDirectory(movieDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
+                            Directory.CreateDirectory(config.movieDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
                         }
                         var shouldMove = true;
                         if (File.Exists(filePath))
@@ -413,7 +393,7 @@ namespace SimpleSFTPSyncCore
                         var file = db.SyncFile.FirstOrDefault(f => f.RemotePath == filePath);
                         if (file == null)
                         {
-                            Log("Found New file: " + filePath);
+                            Log("Found New file: " + basePath + filePath);
                             lock(dbLock)
                             {
                                 db.SyncFile.Add(new SyncFile
@@ -422,7 +402,7 @@ namespace SimpleSFTPSyncCore
                                     DateDownloaded = null,
                                     Length = sftpFile.Length,
                                     RemoteDateModified = sftpFile.LastWriteTime.ToString(),
-                                    RemotePath = filePath
+                                    RemotePath = basePath + filePath
                                 });
                                 db.SaveChanges();
                             }
@@ -431,7 +411,7 @@ namespace SimpleSFTPSyncCore
                         }
                         else if (file.Length != sftpFile.Length || Convert.ToDateTime(file.RemoteDateModified) != sftpFile.LastWriteTime)
                         {
-                            Log("Found Modified file: " + filePath);
+                            Log("Found Modified file: " + basePath + filePath);
                             file.DateDownloaded = null;
                             file.Length = sftpFile.Length;
                             file.RemoteDateModified = sftpFile.LastWriteTime.ToString();
