@@ -390,7 +390,7 @@ namespace SimpleSFTPSyncCore
                     }
                     else
                     {
-                        var file = db.SyncFile.FirstOrDefault(f => f.RemotePath == filePath);
+                        var file = db.SyncFile.FirstOrDefault(f => f.RemotePath == basePath + filePath);
                         if (file == null)
                         {
                             Log("Found New file: " + basePath + filePath);

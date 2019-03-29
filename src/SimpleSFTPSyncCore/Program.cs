@@ -161,7 +161,9 @@ namespace SimpleSFTPSyncCore
                 {
                     var db = new SimpleSFTPSyncCoreContext();
                     var command = string.Join(" ", args).Substring(4);
+                    #pragma warning disable EF1000 // Possible SQL injection vulnerability.
                     Log(db.Database.ExecuteSqlCommand(command) + " rows affected");
+                    #pragma warning restore EF1000 // Possible SQL injection vulnerability.
                 }
 
                 // Test parse TV 
