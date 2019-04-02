@@ -1,9 +1,24 @@
 # SimpleSFTPSyncCore
-Download files ONCE from a remote SFTP, even if you move or delete the files from the download location
+Download files **ONCE** from a remote SFTP server, **even if you move or delete the files from the download location**
+
+After downloading, the files are moved based on [TheMovieDB](https://api.themoviedb.org) genres (for movies) and series titles (for tv series).
 
 This is the new .NET Core version of [SimpleSFTPSync](https://github.com/ScottRFrost/SimpleSFTPSync), which now uses SQLite instead of MS SQL Compact.
 
-It also has command line options to move or copy .mkv files (with genre and smart renaming).
+As always, input is appreciated!
+
+# Usage
+Edit the included config.json and then just run the binary
+
+In Windows
+    Just execute SimpleSFTPSyncCore.exe without any parameters
+    
+In Linux:
+    chmod +x SimpleSFTPSyncCore
+    ./SimpleSFTPSyncCore
+
+# Command Line move / copy
+It also has command line options to move or copy existing .mkv files (with genre and smart renaming):
 
     Usage: dotnet SimpleSFTPSync.dll {options}
     No options - Begin main sync
@@ -13,10 +28,7 @@ It also has command line options to move or copy .mkv files (with genre and smar
     sql {sql command text} - Execute the command text against SimpleSFTPSync's sqlite database
     tv {path name} - Test renaming for a given tv path
 
-
-As always, input is appreciated!
-
-
+# Automation / Execute after download in Deluge
 Sample execute.bat file to use with [Deluge execute plugin](https://dev.deluge-torrent.org/wiki/Plugins/Execute) (assuming you run from C:\Users\YourUserNameHere\Downloads\SimpleSFTPSyncCore and you download to a folder with "Movies" in the path):
 
     @echo off
