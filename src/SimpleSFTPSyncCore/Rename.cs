@@ -116,9 +116,9 @@ namespace SimpleSFTPSyncCore
 
             // Check for TV style naming - Usually 'Show Name s##e##' followed by garbage
             var found = false;
-            for (var season = 1; season < 36; season++)
+            for (var season = 1; season < 64; season++)
             {
-                for (var episode = 0; episode < 36; episode++)
+                for (var episode = 0; episode < 64; episode++)
                 {
                     var episodeNumber = "S" + (season < 10 ? "0" + season : season.ToString(CultureInfo.InvariantCulture)) + "E" + (episode < 10 ? "0" + episode : episode.ToString(CultureInfo.InvariantCulture));
                     var idx = filename.ToUpperInvariant().IndexOf(episodeNumber, StringComparison.Ordinal);
