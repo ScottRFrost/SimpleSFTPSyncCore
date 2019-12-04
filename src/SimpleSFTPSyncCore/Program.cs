@@ -131,7 +131,6 @@ namespace SimpleSFTPSyncCore
                             }
                         }
                     }
-                    
 
                     // Process MKVs
                     if (mkvs.Count > 0)
@@ -159,10 +158,10 @@ namespace SimpleSFTPSyncCore
                 // Direct SQL command
                 else if (args[0] == "sql")
                 {
-                    var db = new SimpleSFTPSyncCoreContext();
+                    using var db = new SimpleSFTPSyncCoreContext();
                     var command = string.Join(" ", args).Substring(4);
                     #pragma warning disable EF1000 // Possible SQL injection vulnerability.
-                    Log(db.Database.ExecuteSqlCommand(command) + " rows affected");
+                    Log(db.Database.ExecuteSqlRaw(command) + " rows affected");
                     #pragma warning restore EF1000 // Possible SQL injection vulnerability.
                 }
 
@@ -205,10 +204,8 @@ namespace SimpleSFTPSyncCore
             var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
             lock (logLock)
             {
-                using (FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write))
-                {
-                    log.Write(logBytes, 0, logBytes.Length);
-                }
+                using FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write);
+                log.Write(logBytes, 0, logBytes.Length);
             }
         }
     }

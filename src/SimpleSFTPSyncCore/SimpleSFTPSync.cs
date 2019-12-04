@@ -59,7 +59,7 @@ namespace SimpleSFTPSyncCore
                     sftp.Connect();
                     Log("Connected to " + config.hostname + " running " + sftp.ConnectionInfo.ServerVersion);
                     Log("Checking for new files to download...");
-                    foreach(var remoteDir in config.remoteDir)
+                    foreach (var remoteDir in config.remoteDir)
                     {
                         Log("Checking for new files in " + remoteDir);
                         var foundFiles = ListFilesRecursive(sftp, remoteDir, string.Empty).ToString();
@@ -80,7 +80,8 @@ namespace SimpleSFTPSyncCore
                                 {
                                     Log(syncFile.RemotePath + " and " + localPath + " are the same size.  Skipping.");
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
-                                    lock(dbLock) {
+                                    lock (dbLock)
+                                    {
                                         db.SaveChanges();
                                     }
                                     continue;
@@ -104,33 +105,39 @@ namespace SimpleSFTPSyncCore
                                 {
                                     var startTime = DateTime.Now;
 
-                                // ASync SFTP
-                                //using (var fileStream = File.OpenWrite(localPath))
-                                //{
-                                //var download = (SftpDownloadAsyncResult)sftp.BeginDownloadFile(syncFile.RemotePath, fileStream);
-                                //ulong lastDownloadedBytes = 0;
-                                //while (!download.IsCompleted)
-                                //{
-                                //    Status(string.Format("Downloaded {0:n0} / {1:n0} KB @ {2:n0} KB/sec", download.DownloadedBytes / 1024, syncFile.Length / 1024, (download.DownloadedBytes - lastDownloadedBytes) / 1024));
-                                //    lastDownloadedBytes = download.DownloadedBytes;
-                                //    Thread.Sleep(1000);
-                                //}
-                                //}
+                                    // ASync SFTP
+                                    //using (var fileStream = File.OpenWrite(localPath))
+                                    //{
+                                    //    var download = (SftpDownloadAsyncResult)sftp.BeginDownloadFile(syncFile.RemotePath, fileStream);
+                                    //    ulong lastDownloadedBytes = 0;
+                                    //    while (!download.IsCompleted)
+                                    //    {
+                                    //        Status(string.Format("Downloaded {0:n0} / {1:n0} KB @ {2:n0} KB/sec", download.DownloadedBytes / 1024, syncFile.Length / 1024, (download.DownloadedBytes - lastDownloadedBytes) / 1024));
+                                    //        lastDownloadedBytes = download.DownloadedBytes;
+                                    //        Thread.Sleep(1000);
+                                    //    }
+                                    //}
 
-                                // Sync SFTP
-                                using (var scp = new ScpClient(config.hostname, config.port, config.username, config.password))
-                                {
-                                    scp.Connect();
-                                    scp.Downloading += Scp_Downloading;
-                                    scp.Download(syncFile.RemotePath, new DirectoryInfo(localDirectory));
-                                    scp.Disconnect();
-                                }
+                                    // Sync SFTP
+                                    using (var fileStream = File.OpenWrite(localPath))
+                                    {
+                                        sftp.DownloadFile(syncFile.RemotePath, fileStream);
+                                    }
 
-                                var endTime = DateTime.Now;
+                                    ////// Sync SCP
+                                    ////using (var scp = new ScpClient(config.hostname, config.port, config.username, config.password))
+                                    ////{
+                                    ////    scp.Connect();
+                                    ////    scp.Downloading += Scp_Downloading;
+                                    ////    scp.Download(syncFile.RemotePath, new DirectoryInfo(localDirectory));
+                                    ////    scp.Disconnect();
+                                    ////}
 
-                                var timespan = TimeSpan.FromSeconds((endTime - startTime).TotalSeconds);
-                                Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", (syncFile.Length / 1024) / timespan.TotalSeconds));
-                                success = true;
+                                    var endTime = DateTime.Now;
+
+                                    var timespan = TimeSpan.FromSeconds((endTime - startTime).TotalSeconds);
+                                    Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", syncFile.Length / 1024 / timespan.TotalSeconds));
+                                    success = true;
                                 }
                                 catch (Exception exception)
                                 {
@@ -142,12 +149,12 @@ namespace SimpleSFTPSyncCore
                                 {
 
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
-                                    lock(dbLock)
+                                    lock (dbLock)
                                     {
                                         db.SaveChanges();
                                     }
 
-                                    if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
+                                    if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || (!localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal)))
                                     {
                                         rars.Add(localPath);
                                         Log("Added " + localPath + " to auto-unrar queue");
@@ -162,7 +169,7 @@ namespace SimpleSFTPSyncCore
                             {
                                 Log(syncFile.RemotePath + " no longer exists");
                                 syncFile.DateDownloaded = DateTime.Now.ToString();
-                                lock(dbLock)
+                                lock (dbLock)
                                 {
                                     db.SaveChanges();
                                 }
@@ -173,14 +180,13 @@ namespace SimpleSFTPSyncCore
                             Log("!!ERROR!! while downloading and scanning " + syncFile.RemotePath + " - " + exception);
                         }
                     }
-                    lock(dbLock)
+                    lock (dbLock)
                     {
                         db.SaveChanges();
                     }
-                    
+
                     sftp.Disconnect();
                 }
-
 
                 Log("Downloading complete.  Processing " + rars.Count + " rars and " + mkvs.Count + " mkvs ...");
                 // Unrar
@@ -212,7 +218,7 @@ namespace SimpleSFTPSyncCore
 
                 // MKV move & rename
                 MoveFiles(mkvs);
-                
+
                 Log("All jobs complete.  Closing in 60 seconds...");
                 Thread.Sleep(60000);
             }
@@ -245,7 +251,7 @@ namespace SimpleSFTPSyncCore
                         {
                             Log("Moving TV " + mkv + " -->\r\n     " + filePath);
                         }
-                        
+
                         if (filename.Contains(Path.DirectorySeparatorChar))
                         {
                             Directory.CreateDirectory(config.tvDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
@@ -287,7 +293,7 @@ namespace SimpleSFTPSyncCore
                                 File.Move(mkv, filePath);
                                 Log("Moved Successfully");
                             }
-                                
+
                         }
                     }
                     else
@@ -302,7 +308,7 @@ namespace SimpleSFTPSyncCore
                         {
                             Log("Moving Movie " + mkv + " -->\r\n     " + filePath);
                         }
-                        
+
                         if (filename.Contains(Path.DirectorySeparatorChar))
                         {
                             Directory.CreateDirectory(config.movieDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
@@ -358,11 +364,11 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void Scp_Downloading(object sender, Renci.SshNet.Common.ScpDownloadEventArgs e)
-        {
-            var percentage = ((double)e.Downloaded / (double)e.Size) * 100D;
-            Status(string.Format("{0} - {1:n2}%  {2:n0} / {3:n0}", e.Filename, percentage, e.Downloaded, e.Size));
-        }
+        ////private void Scp_Downloading(object sender, Renci.SshNet.Common.ScpDownloadEventArgs e)
+        ////{
+        ////    var percentage = ((double)e.Downloaded / (double)e.Size) * 100D;
+        ////    Status(string.Format("{0} - {1:n2}%  {2:n0} / {3:n0}", e.Filename, percentage, e.Downloaded, e.Size));
+        ////}
 
         /// <summary>
         /// Scan entire directory structure of remote SFTP server
@@ -394,7 +400,7 @@ namespace SimpleSFTPSyncCore
                         if (file == null)
                         {
                             Log("Found New file: " + basePath + filePath);
-                            lock(dbLock)
+                            lock (dbLock)
                             {
                                 db.SyncFile.Add(new SyncFile
                                 {
@@ -406,7 +412,7 @@ namespace SimpleSFTPSyncCore
                                 });
                                 db.SaveChanges();
                             }
-                            
+
                             foundFiles++;
                         }
                         else if (file.Length != sftpFile.Length || Convert.ToDateTime(file.RemoteDateModified) != sftpFile.LastWriteTime)
@@ -415,7 +421,7 @@ namespace SimpleSFTPSyncCore
                             file.DateDownloaded = null;
                             file.Length = sftpFile.Length;
                             file.RemoteDateModified = sftpFile.LastWriteTime.ToString();
-                            lock(dbLock)
+                            lock (dbLock)
                             {
                                 db.SaveChanges();
                             }
@@ -448,12 +454,10 @@ namespace SimpleSFTPSyncCore
             }
             Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + " " + logText);
             var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
-            lock(logLock)
+            lock (logLock)
             {
-                using(FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write))
-                {
-                    log.Write(logBytes, 0, logBytes.Length);
-                }
+                using FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write);
+                log.Write(logBytes, 0, logBytes.Length);
             }
         }
 
