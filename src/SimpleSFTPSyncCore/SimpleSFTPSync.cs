@@ -147,7 +147,6 @@ namespace SimpleSFTPSyncCore
                                 // Check for Rars or MKVs
                                 if (success)
                                 {
-
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
                                     lock (dbLock)
                                     {
@@ -293,7 +292,6 @@ namespace SimpleSFTPSyncCore
                                 File.Move(mkv, filePath);
                                 Log("Moved Successfully");
                             }
-
                         }
                     }
                     else
@@ -465,7 +463,7 @@ namespace SimpleSFTPSyncCore
         /// Show text on window title only, do not log to file
         /// </summary>
         /// <param name="statusText">Text to display</param>
-        public void Status(string statusText)
+        public static void Status(string statusText)
         {
             Console.Title = statusText;
         }

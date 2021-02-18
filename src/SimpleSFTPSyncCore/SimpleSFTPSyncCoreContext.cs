@@ -6,7 +6,7 @@ namespace SimpleSFTPSyncCore
     {
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite(@"Filename=SimpleSFTPSyncCore.sqlite");
+            optionsBuilder.UseSqlite("Filename=SimpleSFTPSyncCore.sqlite");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -14,7 +14,7 @@ namespace SimpleSFTPSyncCore
             modelBuilder.Entity<SyncFile>(entity =>
             {
                 entity.HasIndex(e => e.RemotePath)
-                    .HasName("sqlite_autoindex_SyncFile_2")
+                    .HasDatabaseName("sqlite_autoindex_SyncFile_2")
                     .IsUnique();
 
                 entity.Property(e => e.SyncFileId).HasColumnName("SyncFileID");
