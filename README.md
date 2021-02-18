@@ -3,7 +3,7 @@ Download files **ONCE** from a remote SFTP server, **even if you move or delete 
 
 After downloading, the files are moved based on [TheMovieDB](https://api.themoviedb.org) genres (for movies) and series titles (for tv series).
 
-This is the new .NET Core version of [SimpleSFTPSync](https://github.com/ScottRFrost/SimpleSFTPSync), which now uses SQLite instead of MS SQL Compact.
+This is the .NET 5 version of [SimpleSFTPSync](https://github.com/ScottRFrost/SimpleSFTPSync), which now uses SQLite instead of MS SQL Compact.
 
 As always, input is appreciated!
 
