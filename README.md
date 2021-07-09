@@ -22,8 +22,8 @@ It also has command line options to move or copy existing .mkv files (with genre
 
     Usage: dotnet SimpleSFTPSync.dll {options}
     No options - Begin main sync
-    move {path name} - Moves *.mkvs in the given path
-    copy {path name} - Copies *.mkvs in the given path
+    move {path name} - Moves *.mkvs and *.mp4s in the given path
+    copy {path name} - Copies *.mkvs and *.mp4s in the given path
     movie {path name} - Test renaming for a given movie path
     sql {sql command text} - Execute the command text against SimpleSFTPSync's sqlite database
     tv {path name} - Test renaming for a given tv path

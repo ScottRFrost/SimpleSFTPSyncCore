@@ -35,8 +35,8 @@ namespace SimpleSFTPSyncCore
                 {
                     Log("Usage: dotnet SimpleSFTPSync.dll {options}");
                     Log("No options - Begin main sync");
-                    Log("move {path name} - Moves *.mkvs in the given path");
-                    Log("copy {path name} - Copies *.mkvs in the given path");
+                    Log("move {path name} - Moves *.mkvs and *.mp4s in the given path");
+                    Log("copy {path name} - Copies *.mkvs and *.mp4s in the given path");
                     Log("movie {path name} - Test renaming for a given movie path");
                     Log("sql {sql command text} - Execute the command text against SimpleSFTPSync's sqlite database");
                     Log("tv {path name} - Test renaming for a given tv path");
@@ -83,19 +83,19 @@ namespace SimpleSFTPSyncCore
                         // Single File
                         mkvs.Add(path);
                     }
+                    else if (path.Trim().EndsWith(".mp4"))
+                    {
+                        // Single File
+                        mkvs.Add(path);
+                    }
                     else
                     {
-                        // Folder
+                        // Folders
                         mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
-
-                        // Rars
+                        mkvs.AddRange(Directory.GetFiles(path, "*.mp4", SearchOption.AllDirectories));
                         rars.AddRange(Directory.GetFiles(path, "*.rar", SearchOption.AllDirectories));
                     }
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.m2ts"));
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.mp4"));
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.avi"));
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.m4v"));
-                    Log("Found: " + mkvs.Count + " mkvs and " + rars.Count + " rars");
+                    Log("Found: " + mkvs.Count + " mkvs / mp4s and " + rars.Count + " rars");
 
                     // Unrar
                     if(rars.Count > 0)

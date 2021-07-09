@@ -24,7 +24,7 @@ namespace SimpleSFTPSyncCore
         private readonly object dbLock = new object();
         private readonly object logLock = new object();
         private List<string> rars;
-        private List<string> mkvs;
+        private List<string> mkvs; // also has mp4s
 
         public SimpleSFTPSync()
         {
@@ -66,12 +66,12 @@ namespace SimpleSFTPSyncCore
                         Log(foundFiles + " files found for download in " + remoteDir);
                     }
 
-                    // Download and queue up unrar / rename.  For some reason SCP is much faster for downloads.
+                    // Download and queue up unrar / rename.
                     foreach (var syncFile in db.SyncFile.Where(f => f.DateDownloaded == null).OrderBy(f => f.DateDiscovered))
                     {
                         try
                         {
-                            var localPath = config.downloadDir + (syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString()));
+                            var localPath = config.downloadDir + syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString());
                             var localDirectory = localPath.Substring(0, localPath.LastIndexOf(Path.DirectorySeparatorChar));
                             if (File.Exists(localPath))
                             {
@@ -144,7 +144,7 @@ namespace SimpleSFTPSyncCore
                                     Log("!!ERROR!! while downloading " + syncFile.RemotePath + " - " + exception);
                                 }
 
-                                // Check for Rars or MKVs
+                                // Check for Rars, MKVs, and MP4s
                                 if (success)
                                 {
                                     syncFile.DateDownloaded = DateTime.Now.ToString();
@@ -159,6 +159,10 @@ namespace SimpleSFTPSyncCore
                                         Log("Added " + localPath + " to auto-unrar queue");
                                     }
                                     else if (localPath.EndsWith(".mkv", StringComparison.Ordinal))
+                                    {
+                                        mkvs.Add(localPath);
+                                    }
+                                    else if (localPath.EndsWith(".mp4", StringComparison.Ordinal))
                                     {
                                         mkvs.Add(localPath);
                                     }
@@ -187,7 +191,7 @@ namespace SimpleSFTPSyncCore
                     sftp.Disconnect();
                 }
 
-                Log("Downloading complete.  Processing " + rars.Count + " rars and " + mkvs.Count + " mkvs ...");
+                Log("Downloading complete.  Processing " + rars.Count + " rars and " + mkvs.Count + " mkvs / mp4s ...");
                 // Unrar
                 foreach (var rar in rars)
                 {
