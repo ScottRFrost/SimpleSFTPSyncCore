@@ -4,32 +4,31 @@ using System.IO; // For Path
 using System.Globalization;
 using Newtonsoft.Json.Linq;
 
-
 namespace SimpleSFTPSyncCore
 {
-    static class Rename
+    internal static class Rename
     {
-        public enum tmdbGenres
+        public enum TmdbGenres
         {
-            Action = 28,
             Adventure = 12,
+            Fantasy = 14,
             Animation = 16,
+            Drama = 18,
+            Horror = 27,
+            Action = 28,
             Comedy = 35,
+            History = 36,
+            Western = 37,
+            Thriller = 53,
             Crime = 80,
             Documentary = 99,
-            Drama = 18,
-            Family = 10751,
-            Fantasy = 14,
-            History = 36,
-            Horror = 27,
-            Music = 10402,
-            Mystery = 9648,
-            Romance = 10749,
             Science_Fiction = 878,
-            TV_Movie = 10770,
-            Thriller = 53,
+            Mystery = 9648,
+            Music = 10402,
+            Romance = 10749,
+            Family = 10751,
             War = 10752,
-            Western = 37
+            TV_Movie = 10770
         }
 
         /// <summary>
@@ -37,13 +36,13 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Cleaned Version</returns>
-        static string Clean(this string filename)
+        private static string Clean(this string filename)
         {
             // Determine if we want to try to operate on the filename itself or the parent folder
             var chunks = filename.Split(Path.DirectorySeparatorChar);
             if (chunks.Length > 1)
             {
-                var parentFolder = chunks[chunks.Length - 2];
+                var parentFolder = chunks[^2];
                 if (parentFolder.Contains("720p") || parentFolder.Contains("1080p"))
                 {
                     // Check for TV style naming
@@ -70,29 +69,27 @@ namespace SimpleSFTPSyncCore
                     if (found)
                     {
                         // May be a whole season of TV shows, use filename
-                        filename = chunks[chunks.Length - 1].ToLowerInvariant();
+                        filename = chunks[^1].ToLowerInvariant();
                     }
                     else
                     {
                         // Probably a movie and the parent folder name looks descriptive, use parent folder
-                        filename = chunks[chunks.Length - 2].ToLowerInvariant() + ".mkv";
+                        filename = chunks[^2].ToLowerInvariant() + ".mkv";
                     }
                 }
             }
             else
             {
                 // Use filename
-                filename = chunks[chunks.Length - 1].ToLowerInvariant();
+                filename = chunks[^1].ToLowerInvariant();
             }
 
             // Strip things we know we don't want
-            return (
-                filename
+            return filename
                 .Replace("1080p", string.Empty).Replace("720p", string.Empty).Replace("x264", string.Empty).Replace("h264", string.Empty).Replace("ac3", string.Empty).Replace("dts", string.Empty)
                 .Replace("blurayrip", string.Empty).Replace("bluray", string.Empty).Replace("dvdrip", string.Empty).Replace("HDTV", string.Empty).Replace("Webrip", string.Empty)
                 .Replace(".", " ").Replace("  ", " ").Replace("  ", " ")
-                .ToTitleCase().Replace(" Mkv", ".mkv")
-            );
+                .ToTitleCase().Replace(" Mkv", ".mkv");
         }
 
         /// <summary>
@@ -100,7 +97,7 @@ namespace SimpleSFTPSyncCore
         /// </summary>
         /// <param name="filename">Full file path</param>
         /// <returns>Cleaned with Windows illegal characters removed</returns>
-        static string CleanFilePath(this string filename)
+        private static string CleanFilePath(this string filename)
         {
             return filename.Replace(":", "").Replace("*", "").Replace("?", "").Replace("/", "").Replace("\"", "").Replace("<", "").Replace(">", "").Replace("|", "");
         }
@@ -162,9 +159,9 @@ namespace SimpleSFTPSyncCore
                 var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
                 if (title.EndsWith("-"))
                 {
-                    title = title.Substring(0, title.Length - 1).Trim();
+                    title = title[0..^1].Trim();
                 }
-                title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1); // Strip Folder
+                title = title[(title.LastIndexOf(Path.DirectorySeparatorChar) + 1)..]; // Strip Folder
                 var httpClient = new ProHttpClient();
                 dynamic tmdb;
                 try
@@ -184,7 +181,7 @@ namespace SimpleSFTPSyncCore
                     {
                         foreach(int genreID in tmdb.results[0].genre_ids)
                         {
-                            genres += Enum.GetName(typeof(tmdbGenres), genreID) + ",";
+                            genres += Enum.GetName(typeof(TmdbGenres), genreID) + ",";
                         }
                     }
 
@@ -211,7 +208,7 @@ namespace SimpleSFTPSyncCore
             }
 
             // Year not found, punt
-            return filename.Substring(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath();
+            return filename[(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1)..].CleanFilePath();
         }
 
         /// <summary>
@@ -239,9 +236,9 @@ namespace SimpleSFTPSyncCore
                         var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
                         if (title.EndsWith("-"))
                         {
-                            title = title.Substring(0, title.Length - 1).Trim();
+                            title = title[0..^1].Trim();
                         }
-                        title = title.Substring(title.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath().ToLowerInvariant().ToTitleCase(); // Strip Folder, junk, and set to Title Case
+                        title = title[(title.LastIndexOf(Path.DirectorySeparatorChar) + 1)..].CleanFilePath().ToLowerInvariant().ToTitleCase(); // Strip Folder, junk, and set to Title Case
                         var httpClient = new ProHttpClient();
                         dynamic tmdb;
                         try
@@ -269,7 +266,7 @@ namespace SimpleSFTPSyncCore
             }
 
             // Season / episode not found, punt
-            return filename.Substring(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1).CleanFilePath();
+            return filename[(filename.LastIndexOf(Path.DirectorySeparatorChar) + 1)..].CleanFilePath();
         }
     }
 }

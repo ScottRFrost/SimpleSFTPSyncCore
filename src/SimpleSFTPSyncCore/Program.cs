@@ -12,10 +12,10 @@ using System.Threading; // For Thread Sleep
 
 namespace SimpleSFTPSyncCore
 {
-    public class Program
+    public static class Program
     {
         private static string logPath;
-        private static readonly object logLock = new object();
+        private static readonly object logLock = new();
 
         public static void Main(string[] args)
         {
@@ -30,7 +30,6 @@ namespace SimpleSFTPSyncCore
                     simpleSFTPSync.StartRun();
                     // Console.ReadKey(); // DEBUG
                 }
-
                 else if (args[0] == "?" || args[0] == "-?" || args[0] == "-h" || args[0] == "help")
                 {
                     Log("Usage: dotnet SimpleSFTPSync.dll {options}");
@@ -45,7 +44,7 @@ namespace SimpleSFTPSyncCore
                 // Move a folder full of TV / movies
                 else if (args[0] == "move")
                 {
-                    var path = string.Join(" ", args).Substring(5);
+                    var path = string.Join(" ", args)[5..];
                     Log("Moving for path: " + path);
                     var mkvs = new List<string>();
                     if (path.Trim().EndsWith(".mkv"))
@@ -73,8 +72,7 @@ namespace SimpleSFTPSyncCore
                 // Copy a folder full of TV / movies
                 else if (args[0] == "copy")
                 {
-
-                    var path = string.Join(" ", args).Substring(5);
+                    var path = string.Join(" ", args)[5..];
                     Log("Copying for path: " + path);
                     var mkvs = new List<string>();
                     var rars = new List<string>();
@@ -150,7 +148,7 @@ namespace SimpleSFTPSyncCore
                     var tmdbKey = config["tmdbKey"].Value<string>();
 
                     // Parse
-                    var path = string.Join(" ", args).Substring(6);
+                    var path = string.Join(" ", args)[6..];
                     Log(Rename.Movie(path, tmdbKey));
                     Console.ReadKey();
                 }
@@ -159,10 +157,8 @@ namespace SimpleSFTPSyncCore
                 else if (args[0] == "sql")
                 {
                     using var db = new SimpleSFTPSyncCoreContext();
-                    var command = string.Join(" ", args).Substring(4);
-                    #pragma warning disable EF1000 // Possible SQL injection vulnerability.
+                    var command = string.Join(" ", args)[4..];
                     Log(db.Database.ExecuteSqlRaw(command) + " rows affected");
-                    #pragma warning restore EF1000 // Possible SQL injection vulnerability.
                 }
 
                 // Test parse TV 
@@ -175,7 +171,7 @@ namespace SimpleSFTPSyncCore
                     var tmdbKey = config["tmdbKey"].Value<string>();
 
                     // Parse
-                    var path = string.Join(" ", args).Substring(3);
+                    var path = string.Join(" ", args)[3..];
                     Log(Rename.TV(path, tmdbKey));
                     Console.ReadKey();
                 }
@@ -204,7 +200,7 @@ namespace SimpleSFTPSyncCore
             var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
             lock (logLock)
             {
-                using FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write);
+                using FileStream log = new(logPath, FileMode.Append, FileAccess.Write);
                 log.Write(logBytes, 0, logBytes.Length);
             }
         }

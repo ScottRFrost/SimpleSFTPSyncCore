@@ -9,5 +9,6 @@
   "movieDir": "D:\\Movies",
   "tvDir": "D:\\TV",
   "unrar": "Unrar.exe",
-  "tmdbKey": "X"
+  "tmdbKey": "X",
+  "lftp":  5
 }

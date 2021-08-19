@@ -8,7 +8,6 @@ using System.Linq;
 using System.Threading;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
-using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Text;
 using System.Diagnostics; // For process and process start
@@ -20,11 +19,15 @@ namespace SimpleSFTPSyncCore
     {
         private readonly ConfigFile config;
         private static string logPath;
+        private readonly object dbLock = new();
+        private readonly object logLock = new();
+        #pragma warning disable RCS1169 // Make field read-only.
+        #pragma warning disable IDE0044 // Add readonly modifier
         private SimpleSFTPSyncCoreContext db;
-        private readonly object dbLock = new object();
-        private readonly object logLock = new object();
         private List<string> rars;
         private List<string> mkvs; // also has mp4s
+        #pragma warning restore RCS1169 // Make field read-only.
+        #pragma warning restore IDE0044 // Add readonly modifier
 
         public SimpleSFTPSync()
         {
@@ -103,26 +106,46 @@ namespace SimpleSFTPSyncCore
                                 Log("Downloading " + syncFile.RemotePath + " -->\r\n     " + localPath);
                                 try
                                 {
-                                    var startTime = DateTime.Now;
+                                    var stopWatch = new Stopwatch();
+                                    stopWatch.Restart();
 
-                                    // ASync SFTP
-                                    //using (var fileStream = File.OpenWrite(localPath))
-                                    //{
-                                    //    var download = (SftpDownloadAsyncResult)sftp.BeginDownloadFile(syncFile.RemotePath, fileStream);
-                                    //    ulong lastDownloadedBytes = 0;
-                                    //    while (!download.IsCompleted)
-                                    //    {
-                                    //        Status(string.Format("Downloaded {0:n0} / {1:n0} KB @ {2:n0} KB/sec", download.DownloadedBytes / 1024, syncFile.Length / 1024, (download.DownloadedBytes - lastDownloadedBytes) / 1024));
-                                    //        lastDownloadedBytes = download.DownloadedBytes;
-                                    //        Thread.Sleep(1000);
-                                    //    }
-                                    //}
-
-                                    // Sync SFTP
-                                    using (var fileStream = File.OpenWrite(localPath))
+                                    if (config.lftp == 0)
                                     {
+                                        // Sync SFTP
+                                        using var fileStream = File.OpenWrite(localPath);
                                         sftp.DownloadFile(syncFile.RemotePath, fileStream);
                                     }
+                                    else
+                                    {
+                                        // You may need to ssh manually once to save the host key
+                                        var args = string.Concat("-u ", config.username, ",", config.password, " -e \"pget -c -n ", config.lftp, " '", syncFile.RemotePath, "' -o '", localPath, "' \" sftp://", config.hostname, ":", config.port);
+                                        //// Log("  lftp args: " + args.Replace(config.password, "***")); // Debug
+                                        var processStartInfo = new ProcessStartInfo
+                                        {
+                                            FileName = "lftp",
+                                            RedirectStandardInput = false,
+                                            RedirectStandardOutput = false,
+                                            Arguments = args,
+                                            UseShellExecute = true,
+                                            CreateNoWindow = true
+                                        };
+
+                                        using var process = Process.Start(processStartInfo);
+                                        process.WaitForExit();
+                                    }
+
+                                    //// ASync SFTP
+                                    ////using (var fileStream = File.OpenWrite(localPath))
+                                    ////{
+                                    ////    var download = (SftpDownloadAsyncResult)sftp.BeginDownloadFile(syncFile.RemotePath, fileStream);
+                                    ////    ulong lastDownloadedBytes = 0;
+                                    ////    while (!download.IsCompleted)
+                                    ////    {
+                                    ////        Status(string.Format("Downloaded {0:n0} / {1:n0} KB @ {2:n0} KB/sec", download.DownloadedBytes / 1024, syncFile.Length / 1024, (download.DownloadedBytes - lastDownloadedBytes) / 1024));
+                                    ////        lastDownloadedBytes = download.DownloadedBytes;
+                                    ////        Thread.Sleep(1000);
+                                    ////    }
+                                    ////}
 
                                     ////// Sync SCP
                                     ////using (var scp = new ScpClient(config.hostname, config.port, config.username, config.password))
@@ -133,10 +156,10 @@ namespace SimpleSFTPSyncCore
                                     ////    scp.Disconnect();
                                     ////}
 
-                                    var endTime = DateTime.Now;
+                                    stopWatch.Stop();
+                                    var elapsed = stopWatch.Elapsed;
 
-                                    var timespan = TimeSpan.FromSeconds((endTime - startTime).TotalSeconds);
-                                    Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", syncFile.Length / 1024 / timespan.TotalSeconds));
+                                    Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", syncFile.Length / 1024 / elapsed.TotalSeconds));
                                     success = true;
                                 }
                                 catch (Exception exception)
@@ -458,7 +481,7 @@ namespace SimpleSFTPSyncCore
             var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
             lock (logLock)
             {
-                using FileStream log = new FileStream(logPath, FileMode.Append, FileAccess.Write);
+                using FileStream log = new(logPath, FileMode.Append, FileAccess.Write);
                 log.Write(logBytes, 0, logBytes.Length);
             }
         }

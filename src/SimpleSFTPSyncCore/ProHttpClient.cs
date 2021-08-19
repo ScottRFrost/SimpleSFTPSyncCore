@@ -15,7 +15,7 @@ namespace SimpleSFTPSyncCore
             DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "en-US,en;q=0.5");
             DefaultRequestHeaders.TryAddWithoutValidation("Connection", "keep-alive");
             DefaultRequestHeaders.TryAddWithoutValidation("DNT", "1");
-            DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:49.0) Gecko/20100101 Firefox/49.0");
+            DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0");
         }
 
         public string AuthorizationHeader { get; set; }
@@ -25,7 +25,7 @@ namespace SimpleSFTPSyncCore
         public async Task<string> DownloadString(string uri)
         {
             BuildHeaders();
-            var response = await GetStringAsync(uri);
+            var response = await GetStringAsync(uri).ConfigureAwait(false);
             CleanHeaders();
             return response;
         }
@@ -33,12 +33,12 @@ namespace SimpleSFTPSyncCore
         public async Task<Stream> DownloadData(string uri)
         {
             BuildHeaders();
-            var response = await GetStreamAsync(uri);
+            var response = await GetStreamAsync(uri).ConfigureAwait(false);
             CleanHeaders();
             return response;
         }
 
-        void BuildHeaders()
+        private void BuildHeaders()
         {
             DefaultRequestHeaders.Referrer = new Uri(ReferrerUri);
             if (AuthorizationHeader != string.Empty)
@@ -47,7 +47,7 @@ namespace SimpleSFTPSyncCore
             }
         }
 
-        void CleanHeaders()
+        private void CleanHeaders()
         {
             ReferrerUri = "https://duckduckgo.com";
             AuthorizationHeader = string.Empty;

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace SimpleSFTPSyncCore
+﻿namespace SimpleSFTPSyncCore
 {
     public partial class SyncFile
     {

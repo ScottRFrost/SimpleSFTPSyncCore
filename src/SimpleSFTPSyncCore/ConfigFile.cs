@@ -1,5 +1,6 @@
 ﻿namespace SimpleSFTPSyncCore
 {
+#pragma warning disable IDE1006 // Naming Styles
     public class ConfigFile
     {
         public string hostname { get; set; }
@@ -13,5 +14,7 @@
         public string tvDir { get; set; }
         public string unrar { get; set; }
         public string tmdbKey { get; set; }
+        public int lftp { get; set; }
     }
+#pragma warning restore IDE1006 // Naming Styles
 }
