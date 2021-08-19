@@ -114,6 +114,11 @@ namespace SimpleSFTPSyncCore
                                         // Sync SFTP
                                         using var fileStream = File.OpenWrite(localPath);
                                         sftp.DownloadFile(syncFile.RemotePath, fileStream);
+                                        stopWatch.Stop();
+                                        var elapsed = stopWatch.Elapsed;
+
+                                        Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", syncFile.Length / 1024 / elapsed.TotalSeconds));
+                                        success = true;
                                     }
                                     else
                                     {
@@ -131,7 +136,20 @@ namespace SimpleSFTPSyncCore
                                         };
 
                                         using var process = Process.Start(processStartInfo);
-                                        process.WaitForExit();
+                                        if(process.WaitForExit(43200000)) // Max wait 12 hours
+                                        {
+                                            stopWatch.Stop();
+                                            var elapsed = stopWatch.Elapsed;
+
+                                            Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", syncFile.Length / 1024 / elapsed.TotalSeconds));
+                                            success = true;
+                                        }
+                                        else
+                                        {
+                                            process.Kill(true);
+                                            success = false;
+                                            Log("lftp download FAILED.  Process hung for > 12 hours");
+                                        }
                                     }
 
                                     //// ASync SFTP
@@ -155,16 +173,11 @@ namespace SimpleSFTPSyncCore
                                     ////    scp.Download(syncFile.RemotePath, new DirectoryInfo(localDirectory));
                                     ////    scp.Disconnect();
                                     ////}
-
-                                    stopWatch.Stop();
-                                    var elapsed = stopWatch.Elapsed;
-
-                                    Log(string.Format("Downloaded Successfully at {0:n0} KB/sec", syncFile.Length / 1024 / elapsed.TotalSeconds));
-                                    success = true;
                                 }
                                 catch (Exception exception)
                                 {
                                     Log("!!ERROR!! while downloading " + syncFile.RemotePath + " - " + exception);
+
                                 }
 
                                 // Check for Rars, MKVs, and MP4s
