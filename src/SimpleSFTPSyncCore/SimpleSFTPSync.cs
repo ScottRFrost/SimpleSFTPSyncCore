@@ -430,7 +430,7 @@ namespace SimpleSFTPSyncCore
                     {
                         if (!sftpFile.Name.StartsWith(".", StringComparison.Ordinal))
                         {
-                            Log("Directory.  Looking for more files inside."); //// DEBUG
+                            ////Log("Directory.  Looking for more files inside."); //// DEBUG
                             foundFiles += ListFilesRecursive(sftp, basePath, filePath);
                         }
                     }
