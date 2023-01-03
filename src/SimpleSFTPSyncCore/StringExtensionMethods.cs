@@ -10,7 +10,7 @@ namespace SimpleSFTPSyncCore
             for (var i = 0; i < tokens.Length; i++)
             {
                 var token = tokens[i];
-                tokens[i] = token.Substring(0, 1).ToUpper() + token[1..];
+                tokens[i] = token[..1].ToUpper() + token[1..];
             }
 
             return string.Join(" ", tokens);

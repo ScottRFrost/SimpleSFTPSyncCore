@@ -21,12 +21,10 @@ namespace SimpleSFTPSyncCore
         private static string logPath;
         private readonly object dbLock = new();
         private readonly object logLock = new();
-        #pragma warning disable RCS1169 // Make field read-only.
         #pragma warning disable IDE0044 // Add readonly modifier
         private SimpleSFTPSyncCoreContext db;
         private List<string> rars;
         private List<string> mkvs; // also has mp4s
-        #pragma warning restore RCS1169 // Make field read-only.
         #pragma warning restore IDE0044 // Add readonly modifier
 
         public SimpleSFTPSync()
@@ -75,7 +73,7 @@ namespace SimpleSFTPSyncCore
                         try
                         {
                             var localPath = config.downloadDir + syncFile.RemotePath.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString());
-                            var localDirectory = localPath.Substring(0, localPath.LastIndexOf(Path.DirectorySeparatorChar));
+                            var localDirectory = localPath[..localPath.LastIndexOf(Path.DirectorySeparatorChar)];
                             if (File.Exists(localPath))
                             {
                                 var localFile = new FileInfo(localPath);
@@ -233,7 +231,7 @@ namespace SimpleSFTPSyncCore
                 {
                     try
                     {
-                        var unrarFolder = rar.Substring(0, rar.LastIndexOf(Path.DirectorySeparatorChar) + 1) + "_unrar";
+                        var unrarFolder = rar[..(rar.LastIndexOf(Path.DirectorySeparatorChar) + 1)] + "_unrar";
                         if (!Directory.Exists(unrarFolder))
                         {
                             Directory.CreateDirectory(unrarFolder);
@@ -293,7 +291,7 @@ namespace SimpleSFTPSyncCore
 
                         if (filename.Contains(Path.DirectorySeparatorChar))
                         {
-                            Directory.CreateDirectory(config.tvDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
+                            Directory.CreateDirectory(config.tvDir + Path.DirectorySeparatorChar + filename[..filename.LastIndexOf(Path.DirectorySeparatorChar)]);
                         }
 
                         var shouldMove = true;
@@ -349,7 +347,7 @@ namespace SimpleSFTPSyncCore
 
                         if (filename.Contains(Path.DirectorySeparatorChar))
                         {
-                            Directory.CreateDirectory(config.movieDir + Path.DirectorySeparatorChar + filename.Substring(0, filename.LastIndexOf(Path.DirectorySeparatorChar)));
+                            Directory.CreateDirectory(config.movieDir + Path.DirectorySeparatorChar + filename[..filename.LastIndexOf(Path.DirectorySeparatorChar)]);
                         }
                         var shouldMove = true;
                         if (File.Exists(filePath))
@@ -417,24 +415,30 @@ namespace SimpleSFTPSyncCore
         /// <returns>Number of files found</returns>
         private int ListFilesRecursive(SftpClient sftp, string basePath, string subDirectory)
         {
-            Status("Checking /" + subDirectory);
-            var foundFiles = 0;
-            var remoteDirectoryInfo = sftp.ListDirectory(basePath + subDirectory);
+            Status("Checking " + basePath + subDirectory);
+            ////Log("Checking " + basePath + subDirectory); //// DEBUG
             try
             {
+                var foundFiles = 0;
+                var remoteDirectoryInfo = sftp.ListDirectory(basePath + subDirectory);
+                ////Log("Found " + remoteDirectoryInfo.Count()); //// DEBUG
                 foreach (SftpFile sftpFile in remoteDirectoryInfo.OrderBy(f => f.Name))
                 {
                     var filePath = subDirectory + "/" + sftpFile.Name;
+                    ////Log("Examining " + filePath); //// DEBUG
                     if (sftpFile.IsDirectory)
                     {
                         if (!sftpFile.Name.StartsWith(".", StringComparison.Ordinal))
                         {
+                            Log("Directory.  Looking for more files inside."); //// DEBUG
                             foundFiles += ListFilesRecursive(sftp, basePath, filePath);
                         }
                     }
                     else
                     {
+                        ////Log("File.  Checking Database."); //// DEBUG
                         var file = db.SyncFile.FirstOrDefault(f => f.RemotePath == basePath + filePath);
+                        ////Log("Database search successful."); //// DEBUG
                         if (file == null)
                         {
                             Log("Found New file: " + basePath + filePath);
@@ -465,6 +469,10 @@ namespace SimpleSFTPSyncCore
                             }
                             foundFiles++;
                         }
+                        else
+                        {
+                            ////Log("File not modified.  Skipping."); //// DEBUG
+                        }
                     }
                 }
                 return foundFiles;
@@ -484,7 +492,7 @@ namespace SimpleSFTPSyncCore
         {
             if (logText.Length > 127)
             {
-                Console.Title = logText.Substring(0, 127);
+                Console.Title = logText[..127];
             }
             else
             {

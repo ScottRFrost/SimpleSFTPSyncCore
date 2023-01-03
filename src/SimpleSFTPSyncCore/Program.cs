@@ -107,7 +107,7 @@ namespace SimpleSFTPSyncCore
                             var unrar = config["unrar"].Value<string>();
                             try
                             {
-                                var unrarFolder = rar.Substring(0, rar.LastIndexOf(Path.DirectorySeparatorChar) + 1) + "_unrar";
+                                var unrarFolder = rar[..(rar.LastIndexOf(Path.DirectorySeparatorChar) + 1)] + "_unrar";
                                 if (!Directory.Exists(unrarFolder))
                                 {
                                     Directory.CreateDirectory(unrarFolder);
@@ -190,7 +190,7 @@ namespace SimpleSFTPSyncCore
         {
             if (logText.Length > 127)
             {
-                Console.Title = logText.Substring(0, 127);
+                Console.Title = logText[..127];
             }
             else
             {

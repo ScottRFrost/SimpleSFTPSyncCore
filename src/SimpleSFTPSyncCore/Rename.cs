@@ -55,7 +55,7 @@ namespace SimpleSFTPSyncCore
                             var idx = filename.ToUpperInvariant().IndexOf(episodeNumber, StringComparison.Ordinal);
                             if (idx > 0)
                             {
-                                filename = filename.Substring(0, idx) + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                                filename = filename[..idx] + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                                 found = true;
                                 break;
                             }
@@ -121,7 +121,7 @@ namespace SimpleSFTPSyncCore
                     var idx = filename.ToUpperInvariant().IndexOf(episodeNumber, StringComparison.Ordinal);
                     if (idx > 0)
                     {
-                        filename = filename.Substring(0, idx) + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
+                        filename = filename[..idx] + " - " + episodeNumber.ToUpperInvariant() + ".mkv";
                         found = true;
                         break;
                     }
@@ -156,7 +156,7 @@ namespace SimpleSFTPSyncCore
                 }
 
                 // Attempt tmdbAPI Check
-                var title = filename.Substring(0, idx - 1).Trim(); // Strip garbage after year
+                var title = filename[..(idx - 1)].Trim(); // Strip garbage after year
                 if (title.EndsWith("-"))
                 {
                     title = title[0..^1].Trim();
@@ -233,7 +233,7 @@ namespace SimpleSFTPSyncCore
                     if (idx > 0)
                     {
                         // Attempt tmdbAPI Check
-                        var title = filename.Substring(0, idx - 1).Trim(); // Strip S01E01 and trailing garbage
+                        var title = filename[..(idx - 1)].Trim(); // Strip S01E01 and trailing garbage
                         if (title.EndsWith("-"))
                         {
                             title = title[0..^1].Trim();
