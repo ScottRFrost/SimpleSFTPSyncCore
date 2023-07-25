@@ -122,7 +122,7 @@ namespace SimpleSFTPSyncCore
                                     {
                                         // You may need to ssh manually once to save the host key
                                         var args = string.Concat("-u ", config.username, ",", config.password, " -e \"pget -c -n ", config.lftp, " '", syncFile.RemotePath.Replace("'","\\'"), "' -o '", localPath.Replace("'","\\'"), "'; exit\" sftp://", config.hostname, ":", config.port);
-                                        //// Log("  lftp args: " + args.Replace(config.password, "***")); // Debug
+                                        ////Log(" Executing: lftp " + args.Replace(config.password, "***")); // Debug
                                         var processStartInfo = new ProcessStartInfo
                                         {
                                             FileName = "lftp",
