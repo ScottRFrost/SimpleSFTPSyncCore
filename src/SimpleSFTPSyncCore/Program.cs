@@ -1,208 +1,208 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Diagnostics; // For process and process start
 using System.Threading; // For Thread Sleep
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 // To update DB Context: Scaffold-DbContext "Filename={full path here}\SimpleSFTPSyncCore.sqlite" Microsoft.EntityFrameworkCore.Sqlite -Force
 // Simple DB GUI at http://sqlitebrowser.org/
 
-namespace SimpleSFTPSyncCore
+namespace SimpleSFTPSyncCore;
+
+public static class Program
 {
-    public static class Program
+    private static string logPath = string.Empty;
+    private static readonly System.Threading.Lock logLock = new();
+
+    private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        private static string logPath;
-        private static readonly object logLock = new();
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
 
-        public static void Main(string[] args)
+    public static async Task Main(string[] args)
+    {
+        logPath = Path.Combine(Directory.GetCurrentDirectory(), DateTime.Now.ToString("MM-dd-yyyy") + ".log");
+
+        try
         {
-            logPath = Path.Combine(Directory.GetCurrentDirectory(), DateTime.Now.ToString("MM-dd-yyyy") + ".log");
-
-            try
+            // Start Main Loop
+            if (args.Length == 0)
             {
-                // Start Main Loop
-                if (args.Length == 0)
+                var simpleSFTPSync = new SimpleSFTPSync();
+                await simpleSFTPSync.StartRun();
+            }
+            else if (args[0] == "?" || args[0] == "-?" || args[0] == "-h" || args[0] == "help")
+            {
+                Log("Usage: dotnet SimpleSFTPSync.dll {options}");
+                Log("No options - Begin main sync");
+                Log("move {path name} - Moves *.mkvs and *.mp4s in the given path");
+                Log("copy {path name} - Copies *.mkvs and *.mp4s in the given path");
+                Log("movie {path name} - Test renaming for a given movie path");
+                Log("sql {sql command text} - Execute the command text against SimpleSFTPSync's sqlite database");
+                Log("tv {path name} - Test renaming for a given tv path");
+            }
+
+            // Move a folder full of TV / movies
+            else if (args[0] == "move")
+            {
+                var path = string.Join(" ", args)[5..];
+                Log("Moving for path: " + path);
+                var mkvs = new List<string>();
+                if (path.Trim().EndsWith(".mkv"))
+                {
+                    // Single File
+                    mkvs.Add(path);
+                }
+                else
+                {
+                    // Folder
+                    mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
+                }
+                Log("Found: " + mkvs.Count);
+                if (mkvs.Count > 0)
                 {
                     var simpleSFTPSync = new SimpleSFTPSync();
-                    simpleSFTPSync.StartRun();
-                    // Console.ReadKey(); // DEBUG
+                    await simpleSFTPSync.MoveFiles(mkvs);
                 }
-                else if (args[0] == "?" || args[0] == "-?" || args[0] == "-h" || args[0] == "help")
+            }
+
+            // Copy a folder full of TV / movies
+            else if (args[0] == "copy")
+            {
+                var path = string.Join(" ", args)[5..];
+                Log("Copying for path: " + path);
+                var mkvs = new List<string>();
+                var rars = new List<string>();
+                if (path.Trim().EndsWith(".mkv") || path.Trim().EndsWith(".mp4"))
                 {
-                    Log("Usage: dotnet SimpleSFTPSync.dll {options}");
-                    Log("No options - Begin main sync");
-                    Log("move {path name} - Moves *.mkvs and *.mp4s in the given path");
-                    Log("copy {path name} - Copies *.mkvs and *.mp4s in the given path");
-                    Log("movie {path name} - Test renaming for a given movie path");
-                    Log("sql {sql command text} - Execute the command text against SimpleSFTPSync's sqlite database");
-                    Log("tv {path name} - Test renaming for a given tv path");
+                    // Single File
+                    mkvs.Add(path);
                 }
-
-                // Move a folder full of TV / movies
-                else if (args[0] == "move")
+                else
                 {
-                    var path = string.Join(" ", args)[5..];
-                    Log("Moving for path: " + path);
-                    var mkvs = new List<string>();
-                    if (path.Trim().EndsWith(".mkv"))
-                    {
-                        // Single File
-                        mkvs.Add(path);
-                    }
-                    else
-                    {
-                        // Folder
-                        mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
-                    }
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.m2ts"));
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.mp4"));
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.avi"));
-                    ////mkvs.AddRange(Directory.GetFiles(path, "*.m4v"));
-                    Log("Found: " + mkvs.Count);
-                    if (mkvs.Count > 0)
-                    {
-                        var simpleSFTPSync = new SimpleSFTPSync();
-                        simpleSFTPSync.MoveFiles(mkvs);
-                    }
+                    // Folders
+                    mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
+                    mkvs.AddRange(Directory.GetFiles(path, "*.mp4", SearchOption.AllDirectories));
+                    rars.AddRange(Directory.GetFiles(path, "*.rar", SearchOption.AllDirectories));
                 }
+                Log($"Found: {mkvs.Count} mkvs / mp4s and {rars.Count} rars");
 
-                // Copy a folder full of TV / movies
-                else if (args[0] == "copy")
+                // Unrar
+                if (rars.Count > 0)
                 {
-                    var path = string.Join(" ", args)[5..];
-                    Log("Copying for path: " + path);
-                    var mkvs = new List<string>();
-                    var rars = new List<string>();
-                    if (path.Trim().EndsWith(".mkv"))
+                    foreach (var rar in rars)
                     {
-                        // Single File
-                        mkvs.Add(path);
-                    }
-                    else if (path.Trim().EndsWith(".mp4"))
-                    {
-                        // Single File
-                        mkvs.Add(path);
-                    }
-                    else
-                    {
-                        // Folders
-                        mkvs.AddRange(Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories));
-                        mkvs.AddRange(Directory.GetFiles(path, "*.mp4", SearchOption.AllDirectories));
-                        rars.AddRange(Directory.GetFiles(path, "*.rar", SearchOption.AllDirectories));
-                    }
-                    Log("Found: " + mkvs.Count + " mkvs / mp4s and " + rars.Count + " rars");
-
-                    // Unrar
-                    if(rars.Count > 0)
-                    {
-                        foreach (var rar in rars)
+                        var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                        Log("Reading Config from " + configPath);
+                        var fileText = File.ReadAllText(configPath);
+                        var config = JsonSerializer.Deserialize<ConfigFile>(fileText, _jsonOptions)
+                                     ?? throw new InvalidOperationException("Failed to deserialize configuration file.");
+                        var unrar = config.unrar;
+                        try
                         {
-                            var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
-                            Log("Reading Config from " + configPath);
-                            var fileText = File.ReadAllText(configPath);
-                            var config = JObject.Parse(fileText);
-                            var unrar = config["unrar"].Value<string>();
-                            try
+                            var unrarFolder = rar[..(rar.LastIndexOf(Path.DirectorySeparatorChar) + 1)] + "_unrar";
+                            if (!Directory.Exists(unrarFolder))
                             {
-                                var unrarFolder = rar[..(rar.LastIndexOf(Path.DirectorySeparatorChar) + 1)] + "_unrar";
-                                if (!Directory.Exists(unrarFolder))
-                                {
-                                    Directory.CreateDirectory(unrarFolder);
-                                }
-                                Log("Unraring " + rar);
-                                var process = Process.Start(new ProcessStartInfo(unrar) { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); // x = extract, -o- = Don't overwrite or prompt to overwrite
-                                if (process == null)
-                                {
-                                    continue;
-                                }
-                                process.WaitForExit();
-                                Log("Unrared " + rar);
-                                Thread.Sleep(2000); // Wait for unrar to completely clean up
-                                mkvs.AddRange(Directory.GetFiles(unrarFolder, "*.mkv"));
+                                Directory.CreateDirectory(unrarFolder);
                             }
-                            catch (Exception exception)
+                            Log("Unraring " + rar);
+                            using var process = Process.Start(new ProcessStartInfo(unrar) { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); // x = extract, -o- = Don't overwrite or prompt to overwrite
+                            if (process == null)
                             {
-                                Log("!!ERROR!! during Unrar of " + rar + " - " + exception);
+                                continue;
                             }
+                            process.WaitForExit();
+                            Log("Unrared " + rar);
+                            Thread.Sleep(2000); // Wait for unrar to completely clean up
+                            mkvs.AddRange(Directory.GetFiles(unrarFolder, "*.mkv"));
+                        }
+                        catch (Exception exception)
+                        {
+                            Log("!!ERROR!! during Unrar of " + rar + " - " + exception);
                         }
                     }
-
-                    // Process MKVs
-                    if (mkvs.Count > 0)
-                    {
-                        var simpleSFTPSync = new SimpleSFTPSync();
-                        simpleSFTPSync.MoveFiles(mkvs, true);
-                    }
                 }
 
-                // Test parse Movie Name
-                else if (args[0] == "movie")
+                // Process MKVs
+                if (mkvs.Count > 0)
                 {
-                    // Read configuration
-                    var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
-                    var fileText = File.ReadAllText(configPath);
-                    var config = JObject.Parse(fileText);
-                    var tmdbKey = config["tmdbKey"].Value<string>();
-
-                    // Parse
-                    var path = string.Join(" ", args)[6..];
-                    Log(Rename.Movie(path, tmdbKey));
-                    Console.ReadKey();
-                }
-
-                // Direct SQL command
-                else if (args[0] == "sql")
-                {
-                    using var db = new SimpleSFTPSyncCoreContext();
-                    var command = string.Join(" ", args)[4..];
-                    Log(db.Database.ExecuteSqlRaw(command) + " rows affected");
-                }
-
-                // Test parse TV 
-                else if (args[0] == "tv")
-                {
-                    // Read configuration
-                    var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
-                    var fileText = File.ReadAllText(configPath);
-                    var config = JObject.Parse(fileText);
-                    var tmdbKey = config["tmdbKey"].Value<string>();
-
-                    // Parse
-                    var path = string.Join(" ", args)[3..];
-                    Log(Rename.TV(path, tmdbKey));
-                    Console.ReadKey();
+                    var simpleSFTPSync = new SimpleSFTPSync();
+                    await simpleSFTPSync.MoveFiles(mkvs, true);
                 }
             }
-            catch(Exception ex)
+
+            // Test parse Movie Name
+            else if (args[0] == "movie")
             {
-                Log("!!ERROR!! During command line parsing " + ex);
+                // Read configuration
+                var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                var fileText = File.ReadAllText(configPath);
+                var config = JsonSerializer.Deserialize<ConfigFile>(fileText, _jsonOptions)
+                             ?? throw new InvalidOperationException("Failed to deserialize configuration file.");
+                var tmdbKey = config.tmdbKey;
+
+                // Parse
+                var path = string.Join(" ", args)[6..];
+                Log(await Rename.Movie(path, tmdbKey));
+                Console.ReadKey();
+            }
+
+            // Direct SQL command
+            else if (args[0] == "sql")
+            {
+                using var db = new SimpleSFTPSyncCoreContext();
+                var command = string.Join(" ", args)[4..];
+                Log(db.Database.ExecuteSqlRaw(command) + " rows affected");
+            }
+
+            // Test parse TV 
+            else if (args[0] == "tv")
+            {
+                // Read configuration
+                var configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                var fileText = File.ReadAllText(configPath);
+                var config = JsonSerializer.Deserialize<ConfigFile>(fileText, _jsonOptions)
+                             ?? throw new InvalidOperationException("Failed to deserialize configuration file.");
+                var tmdbKey = config.tmdbKey;
+
+                // Parse
+                var path = string.Join(" ", args)[3..];
+                Log(await Rename.TV(path, tmdbKey));
+                Console.ReadKey();
             }
         }
-
-        /// <summary>
-        /// Log text to file and console window
-        /// </summary>
-        /// <param name="logText">Text to display</param>
-        public static void Log(string logText)
+        catch (Exception ex)
         {
-            if (logText.Length > 127)
-            {
-                Console.Title = logText[..127];
-            }
-            else
-            {
-                Console.Title = logText;
-            }
-            Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + " " + logText);
-            var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
-            lock (logLock)
-            {
-                using FileStream log = new(logPath, FileMode.Append, FileAccess.Write);
-                log.Write(logBytes, 0, logBytes.Length);
-            }
+            Log("!!ERROR!! During command line parsing " + ex);
+        }
+    }
+
+    /// <summary>
+    /// Log text to file and console window
+    /// </summary>
+    /// <param name="logText">Text to display</param>
+    public static void Log(string logText)
+    {
+        if (logText.Length > 127)
+        {
+            Console.Title = logText[..127];
+        }
+        else
+        {
+            Console.Title = logText;
+        }
+        Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + " " + logText);
+        var logBytes = new UTF8Encoding(true).GetBytes(DateTime.Now.ToString("HH:mm:ss") + " " + logText + "\r\n");
+        lock (logLock)
+        {
+            using FileStream log = new(logPath, FileMode.Append, FileAccess.Write);
+            log.Write(logBytes, 0, logBytes.Length);
         }
     }
 }
